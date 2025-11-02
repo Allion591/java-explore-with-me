@@ -18,6 +18,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -26,6 +27,7 @@ public class StatsClient {
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
     private final String baseUrl;
+    private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     public StatsClient(ObjectMapper objectMapper,
                        @Value("${stats-server.url}") String baseUrl) {
@@ -35,7 +37,7 @@ public class StatsClient {
     }
 
     public EndpointHit postHit(EndpointHit hit) throws StatsClientException {
-        log.info("Клиент принял запрос на отпраку в сервис: ip:{}, app:{}", hit.getIp(), hit.getApp());
+        log.info("Клиент принял запрос на отправку в сервис: ip:{}, app:{}", hit.getIp(), hit.getApp());
         try {
             String requestBody = objectMapper.writeValueAsString(hit);
 
@@ -71,6 +73,7 @@ public class StatsClient {
         log.info("Клиент принял запрос вывод статистики: запрос: {}", statsRequest);
         try {
             URI uri = buildStatsUri(statsRequest);
+            log.debug("Сформированный URI: {}", uri);
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(uri)
@@ -85,8 +88,7 @@ public class StatsClient {
 
             if (response.statusCode() == 200) {
                 log.debug("Успешно получен ответ от сервиса, response: {}", response.body());
-                return objectMapper.readValue(response.body(), new TypeReference<List<ViewStats>>() {
-                });
+                return objectMapper.readValue(response.body(), new TypeReference<List<ViewStats>>() {});
             } else {
                 throw new StatsClientException("HTTP ошибка: " + response.statusCode() + " - " + response.body());
             }
@@ -103,24 +105,26 @@ public class StatsClient {
 
     private URI buildStatsUri(StatsRequest statsRequest) {
         log.debug("Формируем строку запроса: {}", statsRequest);
-        StringBuilder uriBuilder = new StringBuilder(baseUrl + "/stats?");
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        uriBuilder.append("start=")
-                .append(URLEncoder.encode(statsRequest.getStart().format(formatter), StandardCharsets.UTF_8))
-                .append("&end=")
-                .append(URLEncoder.encode(statsRequest.getEnd().format(formatter), StandardCharsets.UTF_8));
+        List<String> params = new ArrayList<>();
+
+        params.add("start=" + encodeValue(statsRequest.getStart().format(formatter)));
+        params.add("end=" + encodeValue(statsRequest.getEnd().format(formatter)));
 
         if (statsRequest.getUris() != null && !statsRequest.getUris().isEmpty()) {
-            for (String uri : statsRequest.getUris()) {
-                uriBuilder.append("&uris=")
-                        .append(URLEncoder.encode(uri, StandardCharsets.UTF_8));
-            }
+            statsRequest.getUris().forEach(uri ->
+                    params.add("uris=" + encodeValue(uri))
+            );
         }
 
-        if (statsRequest.getUnique() != null) {
-            uriBuilder.append("&unique=").append(statsRequest.getUnique());
-        }
-        return URI.create(uriBuilder.toString());
+        boolean unique = statsRequest.getUnique() != null ? statsRequest.getUnique() : false;
+        params.add("unique=" + unique);
+
+        String queryString = String.join("&", params);
+        return URI.create(baseUrl + "/stats?" + queryString);
+    }
+
+    private String encodeValue(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 }
