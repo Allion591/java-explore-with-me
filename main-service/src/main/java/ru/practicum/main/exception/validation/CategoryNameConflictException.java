@@ -1,7 +1,9 @@
 package ru.practicum.main.exception.validation;
 
-public class CategoryNameConflictException extends RuntimeException {
-  public CategoryNameConflictException(String message) {
-    super(message);
-  }
+import ru.practicum.main.exception.conflict.ConflictException;
+
+public class CategoryNameConflictException extends ConflictException {
+    public CategoryNameConflictException(String name) {
+        super(String.format("Название категории %s уже существует", name));
+    }
 }

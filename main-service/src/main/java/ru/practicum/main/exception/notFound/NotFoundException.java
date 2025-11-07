@@ -1,6 +1,7 @@
-package ru.practicum.main.exception;
+package ru.practicum.main.exception.notFound;
 
 import org.springframework.http.HttpStatus;
+import ru.practicum.main.exception.EwmException;
 
 public class NotFoundException extends EwmException {
     public NotFoundException(String message) {

@@ -1,4 +1,4 @@
-package ru.practicum.main.exception;
+package ru.practicum.main.exception.notFound;
 
 public class EventNotFoundException extends NotFoundException {
     public EventNotFoundException(Long eventId) {

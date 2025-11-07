@@ -1,4 +1,4 @@
-package ru.practicum.main.exception;
+package ru.practicum.main.exception.notFound;
 
 public class CategoryNotFoundException extends NotFoundException {
     public CategoryNotFoundException(Long categoryId) {

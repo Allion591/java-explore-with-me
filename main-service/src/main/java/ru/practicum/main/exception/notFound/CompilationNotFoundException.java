@@ -1,4 +1,4 @@
-package ru.practicum.main.exception;
+package ru.practicum.main.exception.notFound;
 
 public class CompilationNotFoundException extends NotFoundException {
     public CompilationNotFoundException(Long compilationId) {
