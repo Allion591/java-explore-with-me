@@ -1,45 +1,89 @@
 services:
+  ewm-db:
+    image: postgres:16.1
+    container_name: ewm-db
+    ports:
+      - "6542:5432"
+    environment:
+      POSTGRES_DB: ewm_main
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+    volumes:
+      - ewm_db_data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d
+    networks:
+      - ewm-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U admin -d ewm_main" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ewm-main-service:
+    build:
+      context: ./main-service
+      dockerfile: Dockerfile
+    container_name: ewm-main-service
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      ewm-db:
+        condition: service_healthy
+      stats-service:
+          condition: service_healthy
+    networks:
+      - ewm-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
   stats-db:
     image: postgres:16.1
     container_name: stats-db
     ports:
       - "6541:5432"
     environment:
-      - POSTGRES_PASSWORD=admin
-      - POSTGRES_USER=admin
-      - POSTGRES_DB=stats
+      POSTGRES_PASSWORD: admin
+      POSTGRES_USER: admin
+      POSTGRES_DB: stats
+    networks:
+      - ewm-network
     healthcheck:
-      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
+      test: [ "CMD-SHELL", "pg_isready -U admin" ]
       timeout: 5s
       interval: 5s
       retries: 10
-    networks:
-      - explore-network
 
-  stats-server:
-      build:
-        context: stats-service/stats-server
-        dockerfile: Dockerfile
-      container_name: stats-service
-      ports:
-        - "9090:9090"
-      environment:
-        - SPRING_DATASOURCE_URL=jdbc:postgresql://stats-db:5432/stats
-        - SPRING_DATASOURCE_USERNAME=admin
-        - SPRING_DATASOURCE_PASSWORD=admin
-        - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-      depends_on:
-        stats-db:
-          condition: service_healthy
-      healthcheck:
-        test: [ "CMD", "curl", "-f", "http://localhost:9090/actuator/health" ]
-        interval: 30s
-        timeout: 10s
-        retries: 3
-        start_period: 40s
-      networks:
-        - explore-network
-      restart: unless-stopped
+  stats-service:
+    build:
+      context: stats-service/stats-server
+      dockerfile: Dockerfile
+    container_name: stats-service
+    ports:
+      - "9090:9090"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      stats-db:
+        condition: service_healthy
+    networks:
+      - ewm-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9090/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
 networks:
-  explore-network:
+  ewm-network:
     driver: bridge
+
+volumes:
+  ewm_db_data:
