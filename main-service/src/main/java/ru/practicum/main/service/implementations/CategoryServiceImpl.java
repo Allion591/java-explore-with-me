@@ -1,4 +1,4 @@
-package ru.practicum.main.service.implimentations;
+package ru.practicum.main.service.implementations;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -87,7 +87,7 @@ public class CategoryServiceImpl implements CategoryService {
     public List<CategoryDto> getCategories(Integer from, Integer size) {
         log.info("Получение категории from: {}, size: {}", from, size);
 
-        Pageable pageable = PageRequest.of(from / size, size);
+        Pageable pageable = PageRequest.of(from > 0 ? from / size : 0, size);
 
         return categoryRepository.findAll(pageable).getContent().stream()
                 .map(categoryMapper::toCategoryDto)
