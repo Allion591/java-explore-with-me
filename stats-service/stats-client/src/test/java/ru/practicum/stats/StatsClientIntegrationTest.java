@@ -8,12 +8,11 @@ import okhttp3.mockwebserver.RecordedRequest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import ru.practicum.stats.StatsClient.StatsClient;
+import ru.practicum.stats.statsClient.StatsClient;
 import ru.practicum.stats.dto.EndpointHit;
 import ru.practicum.stats.dto.StatsRequest;
 import ru.practicum.stats.dto.ViewStats;
 import ru.practicum.stats.exception.StatsClientException;
-
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -36,7 +35,7 @@ class StatsClientIntegrationTest {
         objectMapper.registerModule(new JavaTimeModule());
 
         baseUrl = mockWebServer.url("/").toString().replaceAll("/$", "");
-        statsClient = new StatsClient(objectMapper, baseUrl);
+        statsClient = new StatsClient(baseUrl);
     }
 
     @AfterEach

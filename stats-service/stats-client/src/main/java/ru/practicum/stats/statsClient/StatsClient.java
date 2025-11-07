@@ -1,7 +1,11 @@
-package ru.practicum.stats.StatsClient;
+package ru.practicum.stats.statsClient;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
+import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -9,7 +13,6 @@ import ru.practicum.stats.dto.EndpointHit;
 import ru.practicum.stats.dto.StatsRequest;
 import ru.practicum.stats.dto.ViewStats;
 import ru.practicum.stats.exception.StatsClientException;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -17,6 +20,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,11 +33,22 @@ public class StatsClient {
     private final String baseUrl;
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    public StatsClient(ObjectMapper objectMapper,
-                       @Value("${stats-server.url}") String baseUrl) {
+    public StatsClient(@Value("${stats-server.url}") String baseUrl) {
         this.httpClient = HttpClient.newHttpClient();
-        this.objectMapper = objectMapper;
         this.baseUrl = baseUrl;
+
+        // Настраиваем ObjectMapper для правильной работы с LocalDateTime
+        this.objectMapper = new ObjectMapper();
+        JavaTimeModule javaTimeModule = new JavaTimeModule();
+
+        // Регистрием сериализатор и десериализатор для LocalDateTime
+        javaTimeModule.addSerializer(LocalDateTime.class,
+                new LocalDateTimeSerializer(formatter));
+        javaTimeModule.addDeserializer(LocalDateTime.class,
+                new LocalDateTimeDeserializer(formatter));
+
+        objectMapper.registerModule(javaTimeModule);
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
 
     public EndpointHit postHit(EndpointHit hit) throws StatsClientException {
@@ -88,7 +103,8 @@ public class StatsClient {
 
             if (response.statusCode() == 200) {
                 log.debug("Успешно получен ответ от сервиса, response: {}", response.body());
-                return objectMapper.readValue(response.body(), new TypeReference<List<ViewStats>>() {});
+                return objectMapper.readValue(response.body(), new TypeReference<List<ViewStats>>() {
+                });
             } else {
                 throw new StatsClientException("HTTP ошибка: " + response.statusCode() + " - " + response.body());
             }

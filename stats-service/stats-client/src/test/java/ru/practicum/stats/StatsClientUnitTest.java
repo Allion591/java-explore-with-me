@@ -9,7 +9,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import ru.practicum.stats.StatsClient.StatsClient;
+import ru.practicum.stats.statsClient.StatsClient;
 import ru.practicum.stats.dto.EndpointHit;
 import ru.practicum.stats.dto.StatsRequest;
 import ru.practicum.stats.dto.ViewStats;
@@ -49,7 +49,7 @@ class StatsClientUnitTest {
         objectMapper.registerModule(new JavaTimeModule());
 
         // Создаем StatsClient с настроенным ObjectMapper
-        statsClient = new StatsClient(objectMapper, baseUrl);
+        statsClient = new StatsClient(baseUrl);
 
         // Используем рефлексию для замены HttpClient на мок
         replaceHttpClientWithMock();
