@@ -1,4 +1,4 @@
-package ru.practicum.main.admins;
+package ru.practicum.main.controller.admins;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

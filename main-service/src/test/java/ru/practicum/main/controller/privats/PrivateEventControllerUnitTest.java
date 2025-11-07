@@ -1,11 +1,10 @@
-package ru.practicum.main.privats;
+package ru.practicum.main.controller.privats;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import ru.practicum.main.controller.privats.PrivateEventController;
 import ru.practicum.main.dto.event.EventFullDto;
 import ru.practicum.main.dto.event.EventShortDto;
 import ru.practicum.main.dto.event.NewEventDto;

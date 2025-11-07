@@ -1,11 +1,10 @@
-package ru.practicum.main.admins;
+package ru.practicum.main.controller.admins;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import ru.practicum.main.controller.admins.AdminEventController;
 import ru.practicum.main.dto.event.EventFullDto;
 import ru.practicum.main.dto.event.UpdateEventAdminRequest;
 import ru.practicum.main.dto.filter.AdminEventFilterParams;

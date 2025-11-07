@@ -1,4 +1,4 @@
-package ru.practicum.main.privats;
+package ru.practicum.main.controller.privats;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
