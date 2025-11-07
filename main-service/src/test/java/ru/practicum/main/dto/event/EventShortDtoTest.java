@@ -159,73 +159,81 @@ class EventShortDtoTest {
 
     @Test
     void eventShortDto_ShouldHaveLombokFunctionality() {
+        LocalDateTime eventDate1 = LocalDateTime.now().plusDays(5);
+        LocalDateTime eventDate2 = eventDate1;
+        LocalDateTime eventDate3 = LocalDateTime.now().plusDays(10);
+
+        CategoryDto concertsCategory = CategoryDto.builder().id(1L).name("Concerts").build();
+        CategoryDto festivalsCategory = CategoryDto.builder().id(2L).name("Festivals").build();
+
         // Given & When
         EventShortDto event1 = EventShortDto.builder()
                 .id(1L)
                 .title("Summer Concert")
                 .annotation("Great event")
-                .eventDate(LocalDateTime.now().plusDays(5))
+                .eventDate(eventDate1)
                 .paid(true)
                 .confirmedRequests(50L)
                 .views(100L)
-                .category(CategoryDto.builder().id(1L).name("Concerts").build())
+                .category(concertsCategory)
                 .build();
 
         EventShortDto event2 = EventShortDto.builder()
                 .id(1L)
                 .title("Summer Concert")
                 .annotation("Great event")
-                .eventDate(LocalDateTime.now().plusDays(5))
+                .eventDate(eventDate2)
                 .paid(true)
                 .confirmedRequests(50L)
                 .views(100L)
-                .category(CategoryDto.builder().id(1L).name("Concerts").build())
+                .category(concertsCategory)
                 .build();
 
         EventShortDto event3 = EventShortDto.builder()
                 .id(2L)
                 .title("Winter Festival")
                 .annotation("Winter event")
-                .eventDate(LocalDateTime.now().plusDays(10))
+                .eventDate(eventDate3)
                 .paid(false)
                 .confirmedRequests(25L)
                 .views(75L)
-                .category(CategoryDto.builder().id(2L).name("Festivals").build())
+                .category(festivalsCategory)
                 .build();
 
-        // Then - проверка Lombok функциональности
-        assertEquals(event1, event2);
-        assertNotEquals(event1, event3);
-        assertEquals(event1.hashCode(), event2.hashCode());
-        assertNotEquals(event1.hashCode(), event3.hashCode());
+        assertEquals(event1, event2, "Объекты с одинаковыми полями должны быть равны");
+        assertNotEquals(event1, event3, "Объекты с разными полями не должны быть равны");
+        assertEquals(event1.hashCode(), event2.hashCode(), "HashCode должен быть " +
+                "одинаковым для равных объектов");
+        assertNotEquals(event1.hashCode(), event3.hashCode(), "HashCode должен быть " +
+                "разным для разных объектов");
 
-        assertNotNull(event1.toString());
-        assertTrue(event1.toString().contains("Summer Concert"));
+        assertNotNull(event1.toString(), "toString не должен возвращать null");
+        assertTrue(event1.toString().contains("Summer Concert"), "toString должен содержать название события");
 
-        // Проверка геттеров и сеттеров
         event1.setTitle("Updated Title");
-        assertEquals("Updated Title", event1.getTitle());
+        assertEquals("Updated Title", event1.getTitle(), "Сеттер title должен работать корректно");
 
         event1.setPaid(false);
-        assertFalse(event1.getPaid());
+        assertFalse(event1.getPaid(), "Сеттер paid должен работать корректно");
 
         event1.setConfirmedRequests(75L);
-        assertEquals(75L, event1.getConfirmedRequests());
+        assertEquals(75L, event1.getConfirmedRequests(), "Сеттер confirmedRequests" +
+                " должен работать корректно");
 
         event1.setViews(200L);
-        assertEquals(200L, event1.getViews());
+        assertEquals(200L, event1.getViews(), "Сеттер views должен работать корректно");
 
         CategoryDto newCategory = CategoryDto.builder().id(3L).name("Sports").build();
         event1.setCategory(newCategory);
-        assertEquals(newCategory, event1.getCategory());
+        assertEquals(newCategory, event1.getCategory(), "Сеттер category должен работать корректно");
 
         UserShortDto newInitiator = UserShortDto.builder().id(2L).name("Jane Smith").build();
         event1.setInitiator(newInitiator);
-        assertEquals(newInitiator, event1.getInitiator());
+        assertEquals(newInitiator, event1.getInitiator(), "Сеттер initiator должен работать корректно");
 
         LocationDto newLocation = LocationDto.builder().lat(59.9343f).lon(30.3351f).build();
         event1.setLocation(newLocation);
-        assertEquals(newLocation, event1.getLocation());
+        assertEquals(newLocation, event1.getLocation(), "Сеттер location должен работать корректно");
     }
 
     @Test

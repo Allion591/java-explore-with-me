@@ -160,11 +160,13 @@ class EventFullDtoTest {
 
     @Test
     void eventFullDto_ShouldHaveLombokFunctionality() {
+        LocalDateTime baseTime = LocalDateTime.now().plusDays(5);
+
         EventFullDto event1 = EventFullDto.builder()
                 .id(1L)
                 .title("Summer Concert")
                 .annotation("Great event")
-                .eventDate(LocalDateTime.now().plusDays(5))
+                .eventDate(baseTime)
                 .paid(true)
                 .participantLimit(100)
                 .state("PUBLISHED")
@@ -174,7 +176,7 @@ class EventFullDtoTest {
                 .id(1L)
                 .title("Summer Concert")
                 .annotation("Great event")
-                .eventDate(LocalDateTime.now().plusDays(5))
+                .eventDate(baseTime)
                 .paid(true)
                 .participantLimit(100)
                 .state("PUBLISHED")

@@ -117,39 +117,63 @@ class EventModelTest {
 
     @Test
     void event_ShouldHaveLombokFunctionality() {
+        LocalDateTime eventDate1 = LocalDateTime.now().plusDays(1);
+        LocalDateTime eventDate2 = eventDate1;
+        LocalDateTime eventDate3 = LocalDateTime.now().plusDays(2);
+
         // Given & When
         Event event1 = Event.builder()
                 .id(1L)
                 .annotation("Annotation")
                 .description("Description")
-                .eventDate(LocalDateTime.now().plusDays(1))
+                .eventDate(eventDate1)
                 .title("Title")
+                .paid(false)
+                .participantLimit(0)
+                .requestModeration(true)
+                .state(EventState.PENDING)
+                .views(0L)
+                .confirmedRequests(0L)
                 .build();
 
         Event event2 = Event.builder()
                 .id(1L)
                 .annotation("Annotation")
                 .description("Description")
-                .eventDate(LocalDateTime.now().plusDays(1))
+                .eventDate(eventDate2)
                 .title("Title")
+                .paid(false)
+                .participantLimit(0)
+                .requestModeration(true)
+                .state(EventState.PENDING)
+                .views(0L)
+                .confirmedRequests(0L)
                 .build();
 
         Event event3 = Event.builder()
                 .id(2L)
                 .annotation("Different Annotation")
                 .description("Different Description")
-                .eventDate(LocalDateTime.now().plusDays(2))
+                .eventDate(eventDate3) // Другое время
                 .title("Different Title")
+                .paid(true)
+                .participantLimit(50)
+                .requestModeration(false)
+                .state(EventState.PUBLISHED)
+                .views(100L)
+                .confirmedRequests(50L)
                 .build();
 
         // Then
-        assertEquals(event1, event2);
-        assertNotEquals(event1, event3);
-        assertEquals(event1.hashCode(), event2.hashCode());
-        assertNotEquals(event1.hashCode(), event3.hashCode());
+        assertEquals(event1, event2, "Объекты с одинаковыми полями должны быть равны");
+        assertNotEquals(event1, event3, "Объекты с разными полями не должны быть равны");
+        assertEquals(event1.hashCode(), event2.hashCode(), "HashCode должен быть одинаковым для " +
+                "равных объектов");
+        assertNotEquals(event1.hashCode(), event3.hashCode(), "HashCode должен быть разным для " +
+                "разных объектов");
 
-        assertNotNull(event1.toString());
-        assertTrue(event1.toString().contains("Title"));
+        assertNotNull(event1.toString(), "toString не должен возвращать null");
+        assertTrue(event1.toString().contains("Title"), "toString должен содержать название события");
     }
 
     @Test
