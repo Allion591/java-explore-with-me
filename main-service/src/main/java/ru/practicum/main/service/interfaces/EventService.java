@@ -1,5 +1,6 @@
 package ru.practicum.main.service.interfaces;
 
+import jakarta.servlet.http.HttpServletRequest;
 import ru.practicum.main.dto.event.*;
 import ru.practicum.main.dto.filter.AdminEventFilterParams;
 import ru.practicum.main.dto.filter.EventPublicFilterRequest;
@@ -21,9 +22,9 @@ public interface EventService {
 
     EventFullDto updateEventByAdmin(Long eventId, UpdateEventAdminRequest updateRequest);
 
-    List<EventShortDto> getEventsPublic(EventPublicFilterRequest filter);
-
-    EventFullDto getEventPublic(Long eventId);
-
     Event getEventById(Long eventId);
+
+    List<EventShortDto> getEventsPublic(EventPublicFilterRequest filter, HttpServletRequest request);
+
+    EventFullDto getEventPublic(Long eventId, HttpServletRequest request);
 }

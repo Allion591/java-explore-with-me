@@ -1,5 +1,6 @@
 package ru.practicum.main.service.implementations;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -24,11 +25,13 @@ import ru.practicum.main.repository.EventRepository;
 import ru.practicum.main.service.interfaces.CategoryService;
 import ru.practicum.main.service.interfaces.EventService;
 import ru.practicum.main.service.interfaces.UserService;
-import ru.practicum.main.stat.ConnectionToStatistics;
+import ru.practicum.stats.statsClient.StatsClient;
+
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -41,7 +44,7 @@ public class EventServiceImpl implements EventService {
     private final UserService userService;
     private final CategoryService categoryService;
     private final EventMapper eventMapper;
-    private final ConnectionToStatistics statistics;
+    private final StatsClient statsClient;
 
     @Override
     @Transactional
@@ -187,8 +190,11 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public List<EventShortDto> getEventsPublic(EventPublicFilterRequest filter) {
+    public List<EventShortDto> getEventsPublic(EventPublicFilterRequest filter, HttpServletRequest request) {
         log.info("Получение событий с фильтрами: {}", filter);
+
+        // Записываем просмотр
+        statsClient.recordHit(request.getRequestURI(), request.getRemoteAddr());
 
         // Подготовка фильтра
         filter.getEffectiveRangeStart();
@@ -211,7 +217,7 @@ public class EventServiceImpl implements EventService {
                     .collect(Collectors.toList());
 
             // Получаем просмотры из сервиса статистики
-            setViewsForEvents(eventDtos);
+            enrichWithViews(eventDtos);
 
             // Если сортировка по просмотрам, сортируем после получения статистики
             if ("VIEWS".equals(filter.getSort())) {
@@ -228,8 +234,11 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public EventFullDto getEventPublic(Long eventId) {
+    public EventFullDto getEventPublic(Long eventId, HttpServletRequest request) {
         log.info("Получение опубликованного события: {}", eventId);
+
+        // Записываем просмотр
+        statsClient.recordHit(request.getRequestURI(), request.getRemoteAddr());
 
         Event event = eventRepository.findByIdAndState(eventId, EventState.PUBLISHED)
                 .orElseThrow(() -> new EventNotFoundException(eventId));
@@ -237,7 +246,7 @@ public class EventServiceImpl implements EventService {
         EventFullDto eventDto = eventMapper.toEventFullDto(event);
 
         // Получаем просмотры из сервиса статистики
-        setViewsForEvent(eventDto);
+        enrichWithViews(eventDto);
 
         return eventDto;
     }
@@ -266,54 +275,32 @@ public class EventServiceImpl implements EventService {
                 .orElseThrow(() -> new EventNotFoundException(eventId));
     }
 
-    private void setViewsForEvents(List<EventShortDto> events) {
-        if (events.isEmpty()) {
+    private void enrichWithViews(Object eventOrEvents) {
+        if (eventOrEvents == null) return;
+
+        Set<Long> eventIds;
+
+        if (eventOrEvents instanceof EventFullDto event) {
+            eventIds = Set.of(event.getId());
+        } else if (eventOrEvents instanceof List<?> events && !events.isEmpty()) {
+            eventIds = events.stream()
+                    .filter(e -> e instanceof EventShortDto)
+                    .map(e -> ((EventShortDto) e).getId())
+                    .collect(Collectors.toSet());
+        } else {
             return;
         }
 
-        try {
-            // Формируем список URI для запроса статистики
-            List<String> uris = events.stream()
-                    .map(event -> "/events/" + event.getId())
-                    .collect(Collectors.toList());
+        Map<Long, Long> views = statsClient.getEventsViews(eventIds, true);
 
-            // Получаем статистику просмотров
-            Map<String, Long> views = statistics.getViews(uris);
-
-            // Устанавливаем просмотры для каждого события
-            events.forEach(event -> {
-                String eventUri = "/events/" + event.getId();
-                Long viewsCount = views.getOrDefault(eventUri, 0L);
-                event.setViews(viewsCount);
-                log.debug("Установлено {} просмотров для событии id={}", viewsCount, event.getId());
+        if (eventOrEvents instanceof EventFullDto event) {
+            event.setViews(views.getOrDefault(event.getId(), 0L));
+        } else if (eventOrEvents instanceof List<?> events) {
+            events.forEach(e -> {
+                if (e instanceof EventShortDto eventShort) {
+                    eventShort.setViews(views.getOrDefault(eventShort.getId(), 0L));
+                }
             });
-
-        } catch (Exception e) {
-            log.error("Ошибка при получении статистики для списка событий: {}", e.getMessage());
-            // В случае ошибки устанавливаем 0 просмотров
-            events.forEach(event -> event.setViews(0L));
-        }
-    }
-
-
-    //Устанавливает количество просмотров для одного события
-    private void setViewsForEvent(EventFullDto event) {
-        try {
-            // Формируем URI для запроса статистики
-            String eventUri = "/events/" + event.getId();
-
-            // Получаем статистику просмотров
-            Map<String, Long> views = statistics.getViews(List.of(eventUri));
-
-            // Устанавливаем просмотры
-            Long viewsCount = views.getOrDefault(eventUri, 0L);
-            event.setViews(viewsCount);
-            log.debug("Установлено {} просмотров для события id={}", viewsCount, event.getId());
-
-        } catch (Exception e) {
-            log.error("Ошибка при получении статистики для события id={}: {}", event.getId(), e.getMessage());
-            // В случае ошибки устанавливаем 0 просмотров
-            event.setViews(0L);
         }
     }
 }
