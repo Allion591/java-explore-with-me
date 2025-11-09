@@ -24,6 +24,9 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -31,11 +34,14 @@ public class StatsClient {
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
     private final String baseUrl;
+    private final String appName;
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    public StatsClient(@Value("${stats-server.url}") String baseUrl) {
+    public StatsClient(@Value("${stats-server.url}") String baseUrl,
+                       @Value("${app.name:ewm-main-service}") String appName) {
         this.httpClient = HttpClient.newHttpClient();
         this.baseUrl = baseUrl;
+        this.appName = appName;
 
         // Настраиваем ObjectMapper для правильной работы с LocalDateTime
         this.objectMapper = new ObjectMapper();
@@ -51,7 +57,61 @@ public class StatsClient {
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
 
-    public EndpointHit postHit(EndpointHit hit) throws StatsClientException {
+    public void recordHit(String uri, String ip) {
+        EndpointHit endpointHit = EndpointHit.builder()
+                .app(appName)
+                .ip(ip)
+                .uri(uri)
+                .timestamp(LocalDateTime.now())
+                .build();
+        postHit(endpointHit);
+    }
+
+    public Map<Long, Long> getEventsViews(Set<Long> eventIds, boolean unique) {
+        if (eventIds == null || eventIds.isEmpty()) {
+            return Map.of();
+        }
+
+        try {
+            List<String> uris = eventIds.stream()
+                    .map(id -> "/events/" + id)
+                    .collect(Collectors.toList());
+
+            StatsRequest statsRequest = StatsRequest.builder()
+                    .start(LocalDateTime.now().minusYears(100))
+                    .end(LocalDateTime.now())
+                    .uris(uris)
+                    .unique(unique)
+                    .build();
+
+            List<ViewStats> stats = getStats(statsRequest);
+
+            return stats.stream()
+                    .collect(Collectors.toMap(
+                            stat -> extractEventIdFromUri(stat.getUri()),
+                            ViewStats::getHits
+                    ));
+        } catch (Exception e) {
+            log.warn("Не удалось получить статистику для событий: {}, error: {}", eventIds, e.getMessage());
+            return Map.of();
+        }
+    }
+
+    public Long getEventViews(Long eventId, boolean unique) {
+        Map<Long, Long> views = getEventsViews(Set.of(eventId), unique);
+        return views.getOrDefault(eventId, 0L);
+    }
+
+    private Long extractEventIdFromUri(String uri) {
+        try {
+            return Long.parseLong(uri.substring("/events/".length()));
+        } catch (Exception e) {
+            log.warn("Некорректный URI события: {}", uri);
+            return -1L;
+        }
+    }
+
+    private EndpointHit postHit(EndpointHit hit) throws StatsClientException {
         log.info("Клиент принял запрос на отправку в сервис: ip:{}, app:{}", hit.getIp(), hit.getApp());
         try {
             String requestBody = objectMapper.writeValueAsString(hit);
@@ -84,7 +144,7 @@ public class StatsClient {
         }
     }
 
-    public List<ViewStats> getStats(StatsRequest statsRequest) throws StatsClientException {
+    private List<ViewStats> getStats(StatsRequest statsRequest) throws StatsClientException {
         log.info("Клиент принял запрос вывод статистики: запрос: {}", statsRequest);
         try {
             URI uri = buildStatsUri(statsRequest);

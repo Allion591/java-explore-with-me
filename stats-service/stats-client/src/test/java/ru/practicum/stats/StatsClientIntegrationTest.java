@@ -10,12 +10,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import ru.practicum.stats.statsClient.StatsClient;
 import ru.practicum.stats.dto.EndpointHit;
-import ru.practicum.stats.dto.StatsRequest;
-import ru.practicum.stats.dto.ViewStats;
-import ru.practicum.stats.exception.StatsClientException;
+
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -25,6 +24,7 @@ class StatsClientIntegrationTest {
     private StatsClient statsClient;
     private ObjectMapper objectMapper;
     private String baseUrl;
+    private final String appName = "ewm-main-service";
 
     @BeforeEach
     void setUp() throws IOException {
@@ -35,7 +35,7 @@ class StatsClientIntegrationTest {
         objectMapper.registerModule(new JavaTimeModule());
 
         baseUrl = mockWebServer.url("/").toString().replaceAll("/$", "");
-        statsClient = new StatsClient(baseUrl);
+        statsClient = new StatsClient(baseUrl, appName);
     }
 
     @AfterEach
@@ -44,26 +44,26 @@ class StatsClientIntegrationTest {
     }
 
     @Test
-    void postHit_shouldSuccessfullySendHitToServer() throws Exception {
-        EndpointHit hit = new EndpointHit();
-        hit.setApp("ewm-main-service");
-        hit.setIp("192.168.1.1");
-        hit.setUri("/events/1");
-        hit.setTimestamp(LocalDateTime.of(2024, 1, 1, 10, 0));
+    void recordHit_shouldSuccessfullySendHitToServer() throws Exception {
+        String uri = "/events/1";
+        String ip = "192.168.1.1";
 
-        String expectedResponse = "{"
-                + "\"app\": \"ewm-main-service\", "
-                + "\"uri\": \"/events/1\", "
-                + "\"ip\": \"192.168.1.1\", "
-                + "\"timestamp\": \"2024-01-01 10:00:00\""
-                + "}";
+        String expectedResponse = objectMapper.writeValueAsString(
+                EndpointHit.builder()
+                        .app(appName)
+                        .uri(uri)
+                        .ip(ip)
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
 
         mockWebServer.enqueue(new MockResponse()
                 .setBody(expectedResponse)
                 .setHeader("Content-Type", "application/json")
                 .setResponseCode(201));
 
-        EndpointHit result = statsClient.postHit(hit);
+        // Вызываем новый метод recordHit
+        statsClient.recordHit(uri, ip);
 
         RecordedRequest recordedRequest = mockWebServer.takeRequest();
         assertEquals("POST", recordedRequest.getMethod());
@@ -73,133 +73,176 @@ class StatsClientIntegrationTest {
         // Проверяем тело запроса
         String requestBody = recordedRequest.getBody().readUtf8();
         EndpointHit sentHit = objectMapper.readValue(requestBody, EndpointHit.class);
-        assertEquals("ewm-main-service", sentHit.getApp());
-        assertEquals("/events/1", sentHit.getUri());
-
-        // Проверяем ответ
-        assertNotNull(result);
-        assertEquals("ewm-main-service", result.getApp());
-        assertEquals("/events/1", result.getUri());
+        assertEquals(appName, sentHit.getApp());
+        assertEquals(uri, sentHit.getUri());
+        assertEquals(ip, sentHit.getIp());
+        assertNotNull(sentHit.getTimestamp());
     }
 
     @Test
-    void getStats_shouldSuccessfullyRetrieveStatsFromServer() throws Exception {
-        StatsRequest statsRequest = StatsRequest.builder()
-                .start(LocalDateTime.of(2024, 1, 1, 0, 0))
-                .end(LocalDateTime.of(2024, 1, 2, 0, 0))
-                .uris(List.of("/events/1", "/events/2"))
-                .unique(true)
-                .build();
+    void getEventsViews_shouldSuccessfullyRetrieveStatsFromServer() throws Exception {
+        Set<Long> eventIds = Set.of(1L, 2L);
+        boolean unique = true;
 
         String expectedResponse = "["
-                + "{"
-                + "\"app\": \"ewm-main-service\", "
-                + "\"uri\": \"/events/1\", "
-                + "\"hits\": 15"
-                + "},"
-                + "{"
-                + "\"app\": \"ewm-main-service\", "
-                + "\"uri\": \"/events/2\", "
-                + "\"hits\": 8"
-                + "}"
+                + "{\"app\": \"ewm-main-service\", \"uri\": \"/events/1\", \"hits\": 15},"
+                + "{\"app\": \"ewm-main-service\", \"uri\": \"/events/2\", \"hits\": 8}"
                 + "]";
 
         mockWebServer.enqueue(new MockResponse()
                 .setBody(expectedResponse)
                 .setHeader("Content-Type", "application/json"));
 
-        List<ViewStats> result = statsClient.getStats(statsRequest);
+        Map<Long, Long> result = statsClient.getEventsViews(eventIds, unique);
 
         RecordedRequest recordedRequest = mockWebServer.takeRequest();
         assertEquals("GET", recordedRequest.getMethod());
 
         String requestPath = recordedRequest.getPath();
         assertTrue(requestPath.startsWith("/stats?"));
-        assertTrue(requestPath.contains("start=2024-01-01+00%3A00%3A00"));
-        assertTrue(requestPath.contains("end=2024-01-02+00%3A00%3A00"));
         assertTrue(requestPath.contains("uris=%2Fevents%2F1"));
         assertTrue(requestPath.contains("uris=%2Fevents%2F2"));
         assertTrue(requestPath.contains("unique=true"));
 
         assertNotNull(result);
         assertEquals(2, result.size());
-        assertEquals("/events/1", result.get(0).getUri());
-        assertEquals(15L, result.get(0).getHits());
+        assertEquals(15L, result.get(1L));
+        assertEquals(8L, result.get(2L));
     }
 
     @Test
-    void postHit_shouldHandleServerError() {
-        EndpointHit hit = new EndpointHit();
-        hit.setApp("app");
-        hit.setUri("/uri");
-        hit.setIp("127.0.0.1");
-        hit.setTimestamp(LocalDateTime.now());
+    void getEventViews_shouldReturnCorrectViews() throws Exception {
+        Long eventId = 1L;
+        boolean unique = true;
+
+        String expectedResponse = "["
+                + "{\"app\": \"ewm-main-service\", \"uri\": \"/events/1\", \"hits\": 25}"
+                + "]";
+
+        mockWebServer.enqueue(new MockResponse()
+                .setBody(expectedResponse)
+                .setHeader("Content-Type", "application/json"));
+
+        Long result = statsClient.getEventViews(eventId, unique);
+
+        RecordedRequest recordedRequest = mockWebServer.takeRequest();
+        String requestPath = recordedRequest.getPath();
+        assertTrue(requestPath.contains("uris=%2Fevents%2F1"));
+        assertTrue(requestPath.contains("unique=true"));
+
+        assertEquals(25L, result);
+    }
+
+    @Test
+    void getEventsViews_withEmptyEventIds_shouldReturnEmptyMapWithoutCallingServer() {
+        Set<Long> eventIds = Set.of();
+        Map<Long, Long> result = statsClient.getEventsViews(eventIds, true);
+
+        assertTrue(result.isEmpty());
+        assertEquals(0, mockWebServer.getRequestCount());
+    }
+
+    @Test
+    void getEventViews_whenEventNotFound_shouldReturnZero() throws Exception {
+        Long eventId = 999L;
+        boolean unique = true;
+
+        // Сервер возвращает пустой список
+        String expectedResponse = "[]";
+
+        mockWebServer.enqueue(new MockResponse()
+                .setBody(expectedResponse)
+                .setHeader("Content-Type", "application/json"));
+
+        Long result = statsClient.getEventViews(eventId, unique);
+
+        assertEquals(0L, result);
+    }
+
+    @Test
+    void getEventsViews_shouldHandleServerErrorGracefully() {
+        Set<Long> eventIds = Set.of(1L, 2L);
 
         mockWebServer.enqueue(new MockResponse()
                 .setResponseCode(500)
                 .setBody("Internal Server Error"));
 
-        StatsClientException exception = assertThrows(StatsClientException.class,
-                () -> statsClient.postHit(hit));
+        Map<Long, Long> result = statsClient.getEventsViews(eventIds, true);
 
-        assertTrue(exception.getMessage().contains("HTTP ошибка: 500"));
+        // Должен вернуть пустую map при ошибке
+        assertTrue(result.isEmpty());
     }
 
     @Test
-    void getStats_shouldHandleNotFoundError() {
-        StatsRequest statsRequest = StatsRequest.builder()
-                .start(LocalDateTime.now().minusDays(1))
-                .end(LocalDateTime.now())
-                .build();
+    void getEventViews_shouldHandleServerErrorGracefully() {
+        Long eventId = 1L;
 
         mockWebServer.enqueue(new MockResponse()
-                .setResponseCode(404)
-                .setBody("Not Found"));
+                .setResponseCode(500)
+                .setBody("Internal Server Error"));
 
-        StatsClientException exception = assertThrows(StatsClientException.class,
-                () -> statsClient.getStats(statsRequest));
+        Long result = statsClient.getEventViews(eventId, true);
 
-        assertTrue(exception.getMessage().contains("HTTP ошибка: 404"));
+        // Должен вернуть 0 при ошибке
+        assertEquals(0L, result);
     }
 
     @Test
-    void getStats_shouldHandleEmptyResponse() throws Exception {
-        StatsRequest statsRequest = StatsRequest.builder()
-                .start(LocalDateTime.now().minusDays(1))
-                .end(LocalDateTime.now())
-                .build();
+    void getEventsViews_withUniqueFalse_shouldBuildCorrectUri() throws Exception {
+        Set<Long> eventIds = Set.of(1L);
+        boolean unique = false;
 
         mockWebServer.enqueue(new MockResponse()
                 .setBody("[]")
                 .setHeader("Content-Type", "application/json"));
 
-        List<ViewStats> result = statsClient.getStats(statsRequest);
+        statsClient.getEventsViews(eventIds, unique);
 
         RecordedRequest recordedRequest = mockWebServer.takeRequest();
-        assertEquals("GET", recordedRequest.getMethod());
+        String requestPath = recordedRequest.getPath();
+        assertTrue(requestPath.contains("unique=false"));
+    }
 
-        assertNotNull(result);
+    @Test
+    void getEventsViews_shouldHandleMalformedJsonGracefully() {
+        Set<Long> eventIds = Set.of(1L);
+
+        mockWebServer.enqueue(new MockResponse()
+                .setBody("invalid json")
+                .setHeader("Content-Type", "application/json"));
+
+        Map<Long, Long> result = statsClient.getEventsViews(eventIds, true);
+
         assertTrue(result.isEmpty());
     }
 
     @Test
-    void postHit_shouldHandleConnectionError() {
-        EndpointHit hit = new EndpointHit();
-        hit.setApp("app");
-        hit.setUri("/uri");
-        hit.setIp("127.0.0.1");
-        hit.setTimestamp(LocalDateTime.now());
+    void getEventsViews_shouldHandleConnectionErrorGracefully() throws IOException {
+        Set<Long> eventIds = Set.of(1L);
 
         // Останавливаем сервер до отправки запроса
-        try {
-            mockWebServer.shutdown();
-        } catch (Exception e) {
-            // Игнорируем ошибки остановки
-        }
+        mockWebServer.shutdown();
 
-        StatsClientException exception = assertThrows(StatsClientException.class,
-                () -> statsClient.postHit(hit));
+        Map<Long, Long> result = statsClient.getEventsViews(eventIds, true);
 
-        assertTrue(exception.getMessage().contains("IO ошибка"));
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void getEventsViews_shouldUseDefaultTimeRange() throws Exception {
+        Set<Long> eventIds = Set.of(1L);
+
+        mockWebServer.enqueue(new MockResponse()
+                .setBody("[]")
+                .setHeader("Content-Type", "application/json"));
+
+        statsClient.getEventsViews(eventIds, true);
+
+        RecordedRequest recordedRequest = mockWebServer.takeRequest();
+        String requestPath = recordedRequest.getPath();
+
+        // Должен содержать параметры start и end с датами
+        assertTrue(requestPath.contains("start="));
+        assertTrue(requestPath.contains("end="));
     }
 }
