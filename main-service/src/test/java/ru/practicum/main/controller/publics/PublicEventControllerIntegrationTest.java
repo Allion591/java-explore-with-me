@@ -11,7 +11,6 @@ import ru.practicum.main.dto.event.EventFullDto;
 import ru.practicum.main.dto.event.EventShortDto;
 import ru.practicum.main.dto.filter.EventPublicFilterRequest;
 import ru.practicum.main.service.interfaces.EventService;
-import ru.practicum.main.stat.ConnectionToStatistics;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -34,9 +33,6 @@ class PublicEventControllerIntegrationTest {
     @MockBean
     private EventService eventService;
 
-    @MockBean
-    private ConnectionToStatistics statistics;
-
     private final String validAnnotation = "This is a valid annotation that meets the minimum length requirement " +
             "of 20 characters";
     private final String validDescription = "This is a valid description that meets the minimum length requirement " +
@@ -53,10 +49,9 @@ class PublicEventControllerIntegrationTest {
                 .paid(true)
                 .build();
 
-        when(eventService.getEventsPublic(any(EventPublicFilterRequest.class)))
+        // Используем any() для HttpServletRequest, так как MockMvc создаст свой
+        when(eventService.getEventsPublic(any(EventPublicFilterRequest.class), any()))
                 .thenReturn(List.of(eventShortDto));
-
-        doNothing().when(statistics).postHit(any());
 
         mockMvc.perform(get("/events")
                         .param("text", "concert")
@@ -68,22 +63,19 @@ class PublicEventControllerIntegrationTest {
                 .andExpect(jsonPath("$[0].id").value(1))
                 .andExpect(jsonPath("$[0].title").value(validTitle));
 
-        verify(eventService, times(1)).getEventsPublic(any(EventPublicFilterRequest.class));
-        verify(statistics, times(1)).postHit(any());
+        // Проверяем, что сервис был вызван с любым HttpServletRequest
+        verify(eventService, times(1)).getEventsPublic(any(EventPublicFilterRequest.class), any());
     }
 
     @Test
     void getEvents_WithDefaultParameters_ShouldReturn200() throws Exception {
-        when(eventService.getEventsPublic(any(EventPublicFilterRequest.class)))
+        when(eventService.getEventsPublic(any(EventPublicFilterRequest.class), any()))
                 .thenReturn(List.of());
-
-        doNothing().when(statistics).postHit(any());
 
         mockMvc.perform(get("/events"))
                 .andExpect(status().isOk());
 
-        verify(eventService, times(1)).getEventsPublic(any(EventPublicFilterRequest.class));
-        verify(statistics, times(1)).postHit(any());
+        verify(eventService, times(1)).getEventsPublic(any(EventPublicFilterRequest.class), any());
     }
 
     @Test
@@ -96,8 +88,7 @@ class PublicEventControllerIntegrationTest {
                         .param("rangeEnd", end.toString()))
                 .andExpect(status().isBadRequest());
 
-        verify(eventService, never()).getEventsPublic(any());
-        verify(statistics, never()).postHit(any());
+        verify(eventService, never()).getEventsPublic(any(), any());
     }
 
     @Test
@@ -110,8 +101,7 @@ class PublicEventControllerIntegrationTest {
                         .param("size", invalidSize.toString()))
                 .andExpect(status().isBadRequest());
 
-        verify(eventService, never()).getEventsPublic(any());
-        verify(statistics, never()).postHit(any());
+        verify(eventService, never()).getEventsPublic(any(), any());
     }
 
     @Test
@@ -130,8 +120,7 @@ class PublicEventControllerIntegrationTest {
                 .state("PUBLISHED")
                 .build();
 
-        when(eventService.getEventPublic(anyLong())).thenReturn(eventFullDto);
-        doNothing().when(statistics).postHit(any());
+        when(eventService.getEventPublic(anyLong(), any())).thenReturn(eventFullDto);
 
         mockMvc.perform(get("/events/{id}", eventId))
                 .andExpect(status().isOk())
@@ -139,8 +128,7 @@ class PublicEventControllerIntegrationTest {
                 .andExpect(jsonPath("$.title").value(validTitle))
                 .andExpect(jsonPath("$.state").value("PUBLISHED"));
 
-        verify(eventService, times(1)).getEventPublic(eventId);
-        verify(statistics, times(1)).postHit(any());
+        verify(eventService, times(1)).getEventPublic(eq(eventId), any());
     }
 
     @Test
@@ -150,7 +138,32 @@ class PublicEventControllerIntegrationTest {
         mockMvc.perform(get("/events/{id}", invalidEventId))
                 .andExpect(status().isBadRequest());
 
-        verify(eventService, never()).getEventPublic(anyLong());
-        verify(statistics, never()).postHit(any());
+        verify(eventService, never()).getEventPublic(anyLong(), any());
+    }
+
+    @Test
+    void getEvents_ShouldPassCorrectRequestInfoToService() throws Exception {
+        EventShortDto eventShortDto = EventShortDto.builder()
+                .id(1L)
+                .title(validTitle)
+                .annotation(validAnnotation)
+                .eventDate(LocalDateTime.now().plusDays(5))
+                .paid(true)
+                .build();
+
+        when(eventService.getEventsPublic(any(EventPublicFilterRequest.class), any()))
+                .thenReturn(List.of(eventShortDto));
+
+        mockMvc.perform(get("/events")
+                        .with(request -> {
+                            request.setRemoteAddr("192.168.1.100");
+                            return request;
+                        })
+                        .param("from", "0")
+                        .param("size", "10"))
+                .andExpect(status().isOk());
+
+        // Проверяем, что сервис был вызван
+        verify(eventService, times(1)).getEventsPublic(any(EventPublicFilterRequest.class), any());
     }
 }

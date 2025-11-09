@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.main.dto.event.*;
@@ -21,14 +22,12 @@ import ru.practicum.main.repository.CategoryRepository;
 import ru.practicum.main.repository.EventRepository;
 import ru.practicum.main.repository.UserRepository;
 import ru.practicum.main.service.implementations.EventServiceImpl;
-import ru.practicum.main.stat.ConnectionToStatistics;
-
+import ru.practicum.stats.statsClient.StatsClient;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
 @SpringBootTest
@@ -49,7 +48,7 @@ class EventServiceImplIntegrationTest {
     private CategoryRepository categoryRepository;
 
     @MockBean
-    private ConnectionToStatistics statistics;
+    private StatsClient statistics;
 
     private User user;
     private Category category;
@@ -110,7 +109,7 @@ class EventServiceImplIntegrationTest {
                 .build();
 
         // Настраиваем мок для статистики
-        when(statistics.getViews(anyList())).thenReturn(Map.of());
+        when(statistics.getEventsViews(anySet(), anyBoolean())).thenReturn(Map.of());
     }
 
     @Test
@@ -212,9 +211,12 @@ class EventServiceImplIntegrationTest {
 
     @Test
     void getEventPublic_withNonPublishedEvent_shouldThrowException() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRequestURI("/events");
+        request.setRemoteAddr("192.168.1.1");
+        request.setMethod("GET");
         // Событие остается в состоянии PENDING
-
-        assertThrows(EventNotFoundException.class, () -> eventService.getEventPublic(event.getId()));
+        assertThrows(EventNotFoundException.class, () -> eventService.getEventPublic(event.getId(), request));
     }
 
     @Test

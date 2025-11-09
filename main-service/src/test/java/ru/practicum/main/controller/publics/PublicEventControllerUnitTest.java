@@ -10,7 +10,6 @@ import ru.practicum.main.dto.event.EventFullDto;
 import ru.practicum.main.dto.event.EventShortDto;
 import ru.practicum.main.dto.filter.EventPublicFilterRequest;
 import ru.practicum.main.service.interfaces.EventService;
-import ru.practicum.main.stat.ConnectionToStatistics;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,16 +25,14 @@ class PublicEventControllerUnitTest {
     private EventService eventService;
 
     @Mock
-    private ConnectionToStatistics statistics;
-
-    @Mock
     private HttpServletRequest request;
 
     @InjectMocks
     private PublicEventController publicEventController;
 
     @Test
-    void getEvents_ShouldReturnEventListAndPostHit() {
+    void getEvents_ShouldReturnEventList() {
+        // given
         EventPublicFilterRequest filter = EventPublicFilterRequest.builder()
                 .text("concert")
                 .onlyAvailable(true)
@@ -51,23 +48,44 @@ class PublicEventControllerUnitTest {
                 .paid(true)
                 .build();
 
-        when(eventService.getEventsPublic(any(EventPublicFilterRequest.class)))
+        when(eventService.getEventsPublic(any(EventPublicFilterRequest.class), any(HttpServletRequest.class)))
                 .thenReturn(List.of(eventShortDto));
 
-        doNothing().when(statistics).postHit(any(HttpServletRequest.class));
-
+        // when
         List<EventShortDto> result = publicEventController.getEvents(filter, request);
 
+        // then
         assertNotNull(result);
         assertEquals(1, result.size());
         assertEquals("Summer Concert", result.get(0).getTitle());
 
-        verify(eventService, times(1)).getEventsPublic(filter);
-        verify(statistics, times(1)).postHit(request);
+        verify(eventService, times(1)).getEventsPublic(eq(filter), eq(request));
     }
 
     @Test
-    void getEvent_ShouldReturnEventAndPostHit() {
+    void getEvents_WithDefaultParameters_ShouldReturnEventList() {
+        // given
+        EventPublicFilterRequest filter = EventPublicFilterRequest.builder()
+                .from(0)
+                .size(10)
+                .build();
+
+        when(eventService.getEventsPublic(any(EventPublicFilterRequest.class), any(HttpServletRequest.class)))
+                .thenReturn(List.of());
+
+        // when
+        List<EventShortDto> result = publicEventController.getEvents(filter, request);
+
+        // then
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+
+        verify(eventService, times(1)).getEventsPublic(eq(filter), eq(request));
+    }
+
+    @Test
+    void getEvent_ShouldReturnEvent() {
+        // given
         Long eventId = 1L;
 
         EventFullDto expectedEvent = EventFullDto.builder()
@@ -82,17 +100,54 @@ class PublicEventControllerUnitTest {
                 .state("PUBLISHED")
                 .build();
 
-        when(eventService.getEventPublic(anyLong())).thenReturn(expectedEvent);
-        doNothing().when(statistics).postHit(any(HttpServletRequest.class));
+        when(eventService.getEventPublic(anyLong(), any(HttpServletRequest.class)))
+                .thenReturn(expectedEvent);
 
+        // when
         EventFullDto actualEvent = publicEventController.getEvent(eventId, request);
 
+        // then
         assertNotNull(actualEvent);
         assertEquals(eventId, actualEvent.getId());
         assertEquals("Summer Concert", actualEvent.getTitle());
         assertEquals("PUBLISHED", actualEvent.getState());
 
-        verify(eventService, times(1)).getEventPublic(eventId);
-        verify(statistics, times(1)).postHit(request);
+        verify(eventService, times(1)).getEventPublic(eq(eventId), eq(request));
+    }
+
+    @Test
+    void getEvents_ShouldPassRequestParametersCorrectly() {
+        // given
+        EventPublicFilterRequest filter = EventPublicFilterRequest.builder()
+                .text("test")
+                .categories(List.of(1L, 2L))
+                .paid(true)
+                .rangeStart(LocalDateTime.now().plusDays(1))
+                .rangeEnd(LocalDateTime.now().plusDays(2))
+                .onlyAvailable(false)
+                .sort("EVENT_DATE")
+                .from(5)
+                .size(20)
+                .build();
+
+        EventShortDto eventShortDto = EventShortDto.builder()
+                .id(1L)
+                .title("Test Event")
+                .annotation("Test annotation")
+                .eventDate(LocalDateTime.now().plusDays(1))
+                .paid(true)
+                .build();
+
+        when(eventService.getEventsPublic(any(EventPublicFilterRequest.class), any(HttpServletRequest.class)))
+                .thenReturn(List.of(eventShortDto));
+
+        // when
+        List<EventShortDto> result = publicEventController.getEvents(filter, request);
+
+        // then
+        assertNotNull(result);
+        assertEquals(1, result.size());
+
+        verify(eventService, times(1)).getEventsPublic(eq(filter), eq(request));
     }
 }
