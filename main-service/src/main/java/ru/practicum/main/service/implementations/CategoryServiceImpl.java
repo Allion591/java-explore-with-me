@@ -33,15 +33,10 @@ public class CategoryServiceImpl implements CategoryService {
     public CategoryDto createCategory(NewCategoryDto newCategoryDto) {
         log.info("Создание категории: {}", newCategoryDto.getName());
 
-        try {
             Category category = categoryMapper.toCategory(newCategoryDto);
             Category savedCategory = categoryRepository.save(category);
             log.info("Категории присвоен id: {}", savedCategory.getId());
             return categoryMapper.toCategoryDto(savedCategory);
-        } catch (DataIntegrityViolationException e) {
-            log.error("Категория с именем '{}' уже существует", newCategoryDto.getName());
-            throw new CategoryNameConflictException(newCategoryDto.getName());
-        }
     }
 
     @Override
