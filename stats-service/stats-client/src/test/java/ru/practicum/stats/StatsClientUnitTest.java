@@ -9,18 +9,16 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import ru.practicum.stats.StatsClient.StatsClient;
-import ru.practicum.stats.dto.EndpointHit;
-import ru.practicum.stats.dto.StatsRequest;
+import ru.practicum.stats.statsClient.StatsClient;
 import ru.practicum.stats.dto.ViewStats;
-import ru.practicum.stats.exception.StatsClientException;
 
 import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -41,15 +39,15 @@ class StatsClientUnitTest {
     private StatsClient statsClient;
     private ObjectMapper objectMapper;
     private final String baseUrl = "http://stats-server:9090";
+    private final String appName = "ewm-main-service";
 
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
-        // Регистрируем модуль для поддержки Java 8 дат/времени
         objectMapper.registerModule(new JavaTimeModule());
 
-        // Создаем StatsClient с настроенным ObjectMapper
-        statsClient = new StatsClient(objectMapper, baseUrl);
+        // Создаем StatsClient с настроенным ObjectMapper и appName
+        statsClient = new StatsClient(baseUrl, appName);
 
         // Используем рефлексию для замены HttpClient на мок
         replaceHttpClientWithMock();
@@ -66,101 +64,13 @@ class StatsClientUnitTest {
     }
 
     @Test
-    void postHit_shouldSendCorrectRequest() throws Exception {
-        EndpointHit hit = new EndpointHit();
-        hit.setApp("ewm-main-service");
-        hit.setIp("192.168.1.1");
-        hit.setUri("/events/1");
-        hit.setTimestamp(LocalDateTime.of(2024, 1, 1, 10, 0));
-
-        String responseBody = objectMapper.writeValueAsString(hit);
-
-        when(httpResponse.statusCode()).thenReturn(201);
-        when(httpResponse.body()).thenReturn(responseBody);
-        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-                .thenReturn(httpResponse);
-
-        EndpointHit result = statsClient.postHit(hit);
-
-        verify(httpClient).send(httpRequestCaptor.capture(), any());
-        HttpRequest capturedRequest = httpRequestCaptor.getValue();
-
-        assertEquals("POST", capturedRequest.method());
-        assertEquals(baseUrl + "/hit", capturedRequest.uri().toString());
-        assertTrue(capturedRequest.headers().firstValue("Content-Type").get().contains("application/json"));
-
-        assertEquals(hit.getApp(), result.getApp());
-        assertEquals(hit.getUri(), result.getUri());
-    }
-
-    @Test
-    void postHit_shouldThrowStatsClientExceptionOnHttpError() throws Exception {
-        EndpointHit hit = new EndpointHit();
-        hit.setApp("app");
-        hit.setUri("/uri");
-        hit.setIp("127.0.0.1");
-        hit.setTimestamp(LocalDateTime.now());
-
-        when(httpResponse.statusCode()).thenReturn(400);
-        when(httpResponse.body()).thenReturn("Bad Request");
-        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-                .thenReturn(httpResponse);
-
-        StatsClientException exception = assertThrows(StatsClientException.class,
-                () -> statsClient.postHit(hit));
-
-        assertTrue(exception.getMessage().contains("HTTP ошибка: 400"));
-    }
-
-    @Test
-    void postHit_shouldHandleIOException() throws Exception {
-
-        EndpointHit hit = new EndpointHit();
-        hit.setApp("app");
-        hit.setUri("/uri");
-        hit.setIp("127.0.0.1");
-        hit.setTimestamp(LocalDateTime.now());
-
-        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-                .thenThrow(new IOException("Connection refused"));
-
-        StatsClientException exception = assertThrows(StatsClientException.class,
-                () -> statsClient.postHit(hit));
-
-        assertTrue(exception.getMessage().contains("IO ошибка"));
-    }
-
-    @Test
-    void postHit_shouldHandleInterruptedException() throws Exception {
-        EndpointHit hit = new EndpointHit();
-        hit.setApp("app");
-        hit.setUri("/uri");
-        hit.setIp("127.0.0.1");
-        hit.setTimestamp(LocalDateTime.now());
-
-        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-                .thenThrow(new InterruptedException("Request interrupted"));
-
-        StatsClientException exception = assertThrows(StatsClientException.class,
-                () -> statsClient.postHit(hit));
-
-        assertTrue(exception.getMessage().contains("Запрос прерван"));
-        // Проверяем, что флаг прерывания восстановлен
-        assertTrue(Thread.interrupted());
-    }
-
-    @Test
-    void getStats_shouldBuildCorrectUri() throws Exception {
-        StatsRequest statsRequest = StatsRequest.builder()
-                .start(LocalDateTime.of(2024, 1, 1, 0, 0))
-                .end(LocalDateTime.of(2024, 1, 2, 0, 0))
-                .uris(List.of("/events/1", "/events/2"))
-                .unique(true)
-                .build();
+    void getEventsViews_shouldReturnCorrectMap() throws Exception {
+        Set<Long> eventIds = Set.of(1L, 2L);
+        boolean unique = true;
 
         List<ViewStats> viewStats = List.of(
-                new ViewStats("ewm-main-service", "/events/1", 10L),
-                new ViewStats("ewm-main-service", "/events/2", 5L)
+                new ViewStats(appName, "/events/1", 10L),
+                new ViewStats(appName, "/events/2", 5L)
         );
         String responseBody = objectMapper.writeValueAsString(viewStats);
 
@@ -169,59 +79,151 @@ class StatsClientUnitTest {
         when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
                 .thenReturn(httpResponse);
 
-        List<ViewStats> result = statsClient.getStats(statsRequest);
+        Map<Long, Long> result = statsClient.getEventsViews(eventIds, unique);
 
         verify(httpClient).send(httpRequestCaptor.capture(), any());
         HttpRequest capturedRequest = httpRequestCaptor.getValue();
 
-        String uri = capturedRequest.uri().toString();
-        assertTrue(uri.startsWith(baseUrl + "/stats?"));
-        assertTrue(uri.contains("start=2024-01-01+00%3A00%3A00"));
-        assertTrue(uri.contains("end=2024-01-02+00%3A00%3A00"));
-        assertTrue(uri.contains("uris=%2Fevents%2F1"));
-        assertTrue(uri.contains("uris=%2Fevents%2F2"));
-        assertTrue(uri.contains("unique=true"));
+        String requestUri = capturedRequest.uri().toString();
+        assertTrue(requestUri.startsWith(baseUrl + "/stats?"));
+        assertTrue(requestUri.contains("uris=%2Fevents%2F1"));
+        assertTrue(requestUri.contains("uris=%2Fevents%2F2"));
+        assertTrue(requestUri.contains("unique=true"));
 
         assertEquals(2, result.size());
-        assertEquals("/events/1", result.get(0).getUri());
+        assertEquals(10L, result.get(1L));
+        assertEquals(5L, result.get(2L));
     }
 
     @Test
-    void getStats_shouldBuildUriWithoutOptionalParams() throws Exception {
-        StatsRequest statsRequest = StatsRequest.builder()
-                .start(LocalDateTime.of(2024, 1, 1, 0, 0))
-                .end(LocalDateTime.of(2024, 1, 2, 0, 0))
-                .build();
+    void getEventsViews_withEmptyEventIds_shouldReturnEmptyMap() throws IOException, InterruptedException {
+        Set<Long> eventIds = Set.of();
+        Map<Long, Long> result = statsClient.getEventsViews(eventIds, true);
+
+        assertTrue(result.isEmpty());
+        verify(httpClient, never()).send(any(HttpRequest.class), any());
+    }
+
+    @Test
+    void getEventViews_shouldReturnCorrectViews() throws Exception {
+        Long eventId = 1L;
+        boolean unique = true;
+
+        List<ViewStats> viewStats = List.of(
+                new ViewStats(appName, "/events/1", 15L)
+        );
+        String responseBody = objectMapper.writeValueAsString(viewStats);
+
+        when(httpResponse.statusCode()).thenReturn(200);
+        when(httpResponse.body()).thenReturn(responseBody);
+        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+                .thenReturn(httpResponse);
+
+        Long result = statsClient.getEventViews(eventId, unique);
+
+        assertEquals(15L, result);
+    }
+
+    @Test
+    void getEventViews_whenEventNotFound_shouldReturnZero() throws Exception {
+        Long eventId = 999L;
+        boolean unique = true;
+
+        List<ViewStats> viewStats = List.of(); // Пустой список - событие не найдено
+        String responseBody = objectMapper.writeValueAsString(viewStats);
+
+        when(httpResponse.statusCode()).thenReturn(200);
+        when(httpResponse.body()).thenReturn(responseBody);
+        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+                .thenReturn(httpResponse);
+
+        Long result = statsClient.getEventViews(eventId, unique);
+
+        assertEquals(0L, result);
+    }
+
+    @Test
+    void getEventsViews_shouldHandleHttpError() throws Exception {
+        Set<Long> eventIds = Set.of(1L, 2L);
+
+        when(httpResponse.statusCode()).thenReturn(400);
+        when(httpResponse.body()).thenReturn("Bad Request");
+        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+                .thenReturn(httpResponse);
+
+        Map<Long, Long> result = statsClient.getEventsViews(eventIds, true);
+
+        // Должен вернуть пустую map при ошибке
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void getEventsViews_shouldHandleIOException() throws Exception {
+        Set<Long> eventIds = Set.of(1L);
+
+        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+                .thenThrow(new IOException("Connection refused"));
+
+        Map<Long, Long> result = statsClient.getEventsViews(eventIds, true);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void getEventsViews_shouldHandleInterruptedException() throws Exception {
+        Set<Long> eventIds = Set.of(1L);
+
+        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+                .thenThrow(new InterruptedException("Request interrupted"));
+
+        Map<Long, Long> result = statsClient.getEventsViews(eventIds, true);
+
+        assertTrue(result.isEmpty());
+        assertTrue(Thread.interrupted()); // Проверяем, что флаг прерывания восстановлен
+    }
+
+    @Test
+    void extractEventIdFromUri_shouldWorkCorrectly() throws Exception {
+        // Используем рефлексию для тестирования приватного метода
+        var method = StatsClient.class.getDeclaredMethod("extractEventIdFromUri", String.class);
+        method.setAccessible(true);
+
+        assertEquals(1L, method.invoke(statsClient, "/events/1"));
+        assertEquals(123L, method.invoke(statsClient, "/events/123"));
+        assertEquals(-1L, method.invoke(statsClient, "invalid-uri"));
+        assertEquals(-1L, method.invoke(statsClient, "/events/not-a-number"));
+    }
+
+    @Test
+    void getEventsViews_withUniqueFalse_shouldBuildCorrectUri() throws Exception {
+        Set<Long> eventIds = Set.of(1L);
+        boolean unique = false;
 
         when(httpResponse.statusCode()).thenReturn(200);
         when(httpResponse.body()).thenReturn("[]");
         when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
                 .thenReturn(httpResponse);
 
-        statsClient.getStats(statsRequest);
+        statsClient.getEventsViews(eventIds, unique);
 
         verify(httpClient).send(httpRequestCaptor.capture(), any());
         HttpRequest capturedRequest = httpRequestCaptor.getValue();
 
         String uri = capturedRequest.uri().toString();
-        assertTrue(uri.contains("start=2024-01-01+00%3A00%3A00"));
-        assertTrue(uri.contains("end=2024-01-02+00%3A00%3A00"));
-        assertFalse(uri.contains("uris="));
         assertTrue(uri.contains("unique=false"));
     }
 
     @Test
-    void getStats_shouldHandleJsonProcessingException() throws Exception {
-        StatsRequest statsRequest = StatsRequest.builder()
-                .start(LocalDateTime.now())
-                .end(LocalDateTime.now().plusDays(1))
-                .build();
+    void getEventsViews_shouldHandleMalformedJson() throws Exception {
+        Set<Long> eventIds = Set.of(1L);
 
         when(httpResponse.statusCode()).thenReturn(200);
         when(httpResponse.body()).thenReturn("invalid json");
         when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
                 .thenReturn(httpResponse);
 
-        assertThrows(StatsClientException.class, () -> statsClient.getStats(statsRequest));
+        Map<Long, Long> result = statsClient.getEventsViews(eventIds, true);
+
+        assertTrue(result.isEmpty());
     }
 }

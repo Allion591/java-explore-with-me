@@ -20,7 +20,8 @@ public class StatsRequest {
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime end;
 
-    private List<String> uris;
+    @Builder.Default
+    private List<String> uris = List.of();
 
     @Builder.Default
     private Boolean unique = false;
@@ -28,5 +29,15 @@ public class StatsRequest {
     @AssertTrue(message = "Дата начала должна быть раньше даты окончания")
     public boolean isDateRangeValid() {
         return start == null || end == null || start.isBefore(end);
+    }
+
+    public StatsRequest withUri(String uri) {
+        this.uris.add(uri);
+        return this;
+    }
+
+    public StatsRequest withUris(List<String> uris) {
+        this.uris.addAll(uris);
+        return this;
     }
 }

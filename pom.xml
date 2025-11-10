@@ -14,7 +14,8 @@
 
 	<modules>
 		<module>stats-service</module>
-	</modules>
+        <module>main-service</module>
+    </modules>
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
