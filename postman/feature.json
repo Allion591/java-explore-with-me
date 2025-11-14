@@ -974,6 +974,141 @@
           ]
         },
         {
+          "name": "PublicCommentController",
+          "item": [
+            {
+              "name": "Получение комментариев для неавториз. польз.",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const main = async () => {\r",
+                      "    const api = new API(pm);\r",
+                      "    const rnd = new RandomUtils();\r",
+                      "\r",
+                      "    try {\r",
+                      "        const user = await api.addUser(rnd.getUser());\r",
+                      "        const user2 = await api.addUser(rnd.getUser());\r",
+                      "        const category = await api.addCategory(rnd.getCategory());\r",
+                      "        const event = await api.addEvent(user.id, rnd.getEvent(category.id));\r",
+                      "        pm.collectionVariables.set(\"eventId\", event.id);\r",
+                      "        await api.publishEvent(event.id);\r",
+                      "\r",
+                      "        const commentData1 = rnd.getComment(); \r",
+                      "        const commentData2 = rnd.getComment(); \r",
+                      "\r",
+                      "        const newComment1 = await api.addComment(user.id, event.id, commentData1);\r",
+                      "        const newComment2 = await api.addComment(user2.id, event.id, commentData2);\r",
+                      "\r",
+                      "        await api.moderateComment(newComment1.id, event.id, user.id, \"APPROVE\");\r",
+                      "        await api.moderateComment(newComment2.id, event.id, user2.id, \"APPROVE\");\r",
+                      "\r",
+                      "        pm.collectionVariables.set(\"commentId1\", newComment1.id);\r",
+                      "        pm.collectionVariables.set(\"commentId2\", newComment2.id);\r",
+                      "        pm.collectionVariables.set(\"userId1\", user.id);  \r",
+                      "        pm.collectionVariables.set(\"userId2\", user2.id); \r",
+                      "         \r",
+                      "        \r",
+                      "        console.log(\"Созданы 2 APPROVED комментария:\");\r",
+                      "        console.log(\"Comment1 ID:\", newComment1.id, \"User1 ID:\", user.id);\r",
+                      "        console.log(\"Comment2 ID:\", newComment2.id, \"User2 ID:\", user2.id);\r",
+                      "        console.log(\"Event ID:\", event.id);\r",
+                      "        \r",
+                      "    } catch(err) {\r",
+                      "        console.error(\"Ошибка при подготовке тестовых данных.\", err);\r",
+                      "    }\r",
+                      "};\r",
+                      "\r",
+                      "const interval = setInterval(() => {}, 1000);\r",
+                      "\r",
+                      "setTimeout(async () => {\r",
+                      "    try {\r",
+                      "        await main();\r",
+                      "    } catch (e) {\r",
+                      "        console.error(e);\r",
+                      "    } finally {\r",
+                      "        clearInterval(interval);\r",
+                      "    }\r",
+                      "}, 100);"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Статус код 200 при получении комментариев события\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "});\r",
+                      "\r",
+                      "pm.test(\"Ответ должен содержать массив APPROVED комментариев\", function () {\r",
+                      "    const comments = pm.response.json();\r",
+                      "    \r",
+                      "    pm.expect(comments).to.be.an('array');\r",
+                      "    pm.expect(comments).to.have.lengthOf(2);\r",
+                      "    \r",
+                      "    comments.forEach(function(comment, index) {\r",
+                      "        pm.expect(comment.state).to.equal(\"APPROVED\");\r",
+                      "    });\r",
+                      "});\r",
+                      "\r",
+                      "pm.test(\"Должны присутствовать оба созданных комментария\", function () {\r",
+                      "    const comments = pm.response.json();\r",
+                      "    const commentId1 = pm.collectionVariables.get(\"commentId1\");\r",
+                      "    const commentId2 = pm.collectionVariables.get(\"commentId2\");\r",
+                      "    \r",
+                      "    const foundComment1 = comments.find(comment => comment.id === parseInt(commentId1));\r",
+                      "    const foundComment2 = comments.find(comment => comment.id === parseInt(commentId2));\r",
+                      "    \r",
+                      "    pm.expect(foundComment1).to.exist;\r",
+                      "    pm.expect(foundComment2).to.exist;\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/comments/:eventId?from=0&size=10",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "comments",
+                    ":eventId"
+                  ],
+                  "query": [
+                    {
+                      "key": "from",
+                      "value": "0"
+                    },
+                    {
+                      "key": "size",
+                      "value": "10"
+                    }
+                  ],
+                  "variable": [
+                    {
+                      "key": "eventId",
+                      "value": "{{eventId}}"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
           "name": "Validation",
           "item": [
             {
@@ -1006,8 +1141,7 @@
                   "listen": "prerequest",
                   "script": {
                     "exec": [
-                      "pm.collectionVariables.set(\"stateActionApprove\", \"APPROVE\");\r",
-                      "pm.collectionVariables.set(\"stateActionReject\", \"REJECT\");\r",
+                      "\r",
                       ""
                     ],
                     "type": "text/javascript",
@@ -2911,141 +3045,6 @@
                       "    \r",
                       "    pm.expect(comments).to.be.an('array');\r",
                       "    pm.expect(comments).to.have.lengthOf(0);\r",
-                      "});"
-                    ],
-                    "type": "text/javascript",
-                    "packages": {},
-                    "requests": {}
-                  }
-                }
-              ],
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/comments/:eventId?from=0&size=10",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "comments",
-                    ":eventId"
-                  ],
-                  "query": [
-                    {
-                      "key": "from",
-                      "value": "0"
-                    },
-                    {
-                      "key": "size",
-                      "value": "10"
-                    }
-                  ],
-                  "variable": [
-                    {
-                      "key": "eventId",
-                      "value": "{{eventId}}"
-                    }
-                  ]
-                }
-              },
-              "response": []
-            }
-          ]
-        },
-        {
-          "name": "PublicCommentController",
-          "item": [
-            {
-              "name": "Получение комментариев для неавториз. польз.",
-              "event": [
-                {
-                  "listen": "prerequest",
-                  "script": {
-                    "exec": [
-                      "const main = async () => {\r",
-                      "    const api = new API(pm);\r",
-                      "    const rnd = new RandomUtils();\r",
-                      "\r",
-                      "    try {\r",
-                      "        const user = await api.addUser(rnd.getUser());\r",
-                      "        const user2 = await api.addUser(rnd.getUser());\r",
-                      "        const category = await api.addCategory(rnd.getCategory());\r",
-                      "        const event = await api.addEvent(user.id, rnd.getEvent(category.id));\r",
-                      "        pm.collectionVariables.set(\"eventId\", event.id);\r",
-                      "        await api.publishEvent(event.id);\r",
-                      "\r",
-                      "        const commentData1 = rnd.getComment(); \r",
-                      "        const commentData2 = rnd.getComment(); \r",
-                      "\r",
-                      "        const newComment1 = await api.addComment(user.id, event.id, commentData1);\r",
-                      "        const newComment2 = await api.addComment(user2.id, event.id, commentData2);\r",
-                      "\r",
-                      "        await api.moderateComment(newComment1.id, event.id, user.id, \"APPROVE\");\r",
-                      "        await api.moderateComment(newComment2.id, event.id, user2.id, \"APPROVE\");\r",
-                      "\r",
-                      "        pm.collectionVariables.set(\"commentId1\", newComment1.id);\r",
-                      "        pm.collectionVariables.set(\"commentId2\", newComment2.id);\r",
-                      "        pm.collectionVariables.set(\"userId1\", user.id);  \r",
-                      "        pm.collectionVariables.set(\"userId2\", user2.id); \r",
-                      "         \r",
-                      "        \r",
-                      "        console.log(\"Созданы 2 APPROVED комментария:\");\r",
-                      "        console.log(\"Comment1 ID:\", newComment1.id, \"User1 ID:\", user.id);\r",
-                      "        console.log(\"Comment2 ID:\", newComment2.id, \"User2 ID:\", user2.id);\r",
-                      "        console.log(\"Event ID:\", event.id);\r",
-                      "        \r",
-                      "    } catch(err) {\r",
-                      "        console.error(\"Ошибка при подготовке тестовых данных.\", err);\r",
-                      "    }\r",
-                      "};\r",
-                      "\r",
-                      "const interval = setInterval(() => {}, 1000);\r",
-                      "\r",
-                      "setTimeout(async () => {\r",
-                      "    try {\r",
-                      "        await main();\r",
-                      "    } catch (e) {\r",
-                      "        console.error(e);\r",
-                      "    } finally {\r",
-                      "        clearInterval(interval);\r",
-                      "    }\r",
-                      "}, 100);"
-                    ],
-                    "type": "text/javascript",
-                    "packages": {},
-                    "requests": {}
-                  }
-                },
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      "pm.test(\"Статус код 200 при получении комментариев события\", function () {\r",
-                      "    pm.response.to.have.status(200);\r",
-                      "});\r",
-                      "\r",
-                      "pm.test(\"Ответ должен содержать массив APPROVED комментариев\", function () {\r",
-                      "    const comments = pm.response.json();\r",
-                      "    \r",
-                      "    pm.expect(comments).to.be.an('array');\r",
-                      "    pm.expect(comments).to.have.lengthOf(2);\r",
-                      "    \r",
-                      "    comments.forEach(function(comment, index) {\r",
-                      "        pm.expect(comment.state).to.equal(\"APPROVED\");\r",
-                      "    });\r",
-                      "});\r",
-                      "\r",
-                      "pm.test(\"Должны присутствовать оба созданных комментария\", function () {\r",
-                      "    const comments = pm.response.json();\r",
-                      "    const commentId1 = pm.collectionVariables.get(\"commentId1\");\r",
-                      "    const commentId2 = pm.collectionVariables.get(\"commentId2\");\r",
-                      "    \r",
-                      "    const foundComment1 = comments.find(comment => comment.id === parseInt(commentId1));\r",
-                      "    const foundComment2 = comments.find(comment => comment.id === parseInt(commentId2));\r",
-                      "    \r",
-                      "    pm.expect(foundComment1).to.exist;\r",
-                      "    pm.expect(foundComment2).to.exist;\r",
                       "});"
                     ],
                     "type": "text/javascript",
