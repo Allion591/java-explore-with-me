@@ -275,6 +275,14 @@ public class EventServiceImpl implements EventService {
                 .orElseThrow(() -> new EventNotFoundException(eventId));
     }
 
+    @Override
+    public void existsById(Long id) {
+        if (!eventRepository.existsById(id)) {
+            log.error("Событие с id: {} не найдено", id);
+            throw new EventNotFoundException(id);
+        }
+    }
+
     private void enrichWithViews(Object eventOrEvents) {
         if (eventOrEvents == null) return;
 

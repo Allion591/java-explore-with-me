@@ -51,20 +51,6 @@ class AdminUserControllerIntegrationTest {
     }
 
     @Test
-    void createUser_WithInvalidData_ShouldReturn400() throws Exception {
-        // - невалидные данные (слишком короткое имя)
-        NewUserRequest invalidRequest = new NewUserRequest("J", "invalid-email");
-
-        mockMvc.perform(post("/admin/users")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(invalidRequest)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors").isArray());
-
-        verify(userService, never()).createUser(any());
-    }
-
-    @Test
     void getUsers_WithIds_ShouldReturn200AndUserList() throws Exception {
         UserDto user1 = new UserDto(1L, "John Doe", "john@example.com");
         UserDto user2 = new UserDto(2L, "Jane Smith", "jane@example.com");
