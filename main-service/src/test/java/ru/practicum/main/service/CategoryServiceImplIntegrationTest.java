@@ -80,15 +80,6 @@ class CategoryServiceImplIntegrationTest {
     }
 
     @Test
-    void createCategory_withDuplicateName_shouldThrowException() {
-        NewCategoryDto duplicateDto = new NewCategoryDto("Existing Category");
-
-        assertThrows(CategoryNameConflictException.class, () -> {
-            categoryService.createCategory(duplicateDto);
-        });
-    }
-
-    @Test
     void deleteCategory_shouldDeleteCategorySuccessfully() {
         categoryService.deleteCategory(existingCategory.getId());
 

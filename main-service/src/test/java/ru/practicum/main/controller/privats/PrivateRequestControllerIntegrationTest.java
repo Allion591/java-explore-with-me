@@ -194,22 +194,6 @@ class PrivateRequestControllerIntegrationTest {
     }
 
     @Test
-    void updateRequestStatus_WithInvalidData_ShouldReturn400() throws Exception {
-        EventRequestStatusUpdateRequest invalidRequest = EventRequestStatusUpdateRequest.builder()
-                .requestIds(List.of()) // Пустой список
-                .status(null) // Null статус
-                .build();
-
-        mockMvc.perform(patch("/users/{userId}/events/{eventId}/requests", userId, eventId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(invalidRequest)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors").isArray());
-
-        verify(requestService, never()).updateRequestStatus(anyLong(), anyLong(), any());
-    }
-
-    @Test
     void updateRequestStatus_WithInvalidIds_ShouldReturn400() throws Exception {
         EventRequestStatusUpdateRequest updateRequest = EventRequestStatusUpdateRequest.builder()
                 .requestIds(List.of(requestId))

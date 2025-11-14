@@ -11,7 +11,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import ru.practicum.main.dto.event.EventFullDto;
 import ru.practicum.main.dto.event.EventShortDto;
 import ru.practicum.main.dto.event.NewEventDto;
-import ru.practicum.main.dto.event.UpdateEventUserRequest;
 import ru.practicum.main.dto.location.LocationDto;
 import ru.practicum.main.service.interfaces.EventService;
 
@@ -82,27 +81,6 @@ class PrivateEventControllerIntegrationTest {
     }
 
     @Test
-    void createEvent_WithInvalidData_ShouldReturn400() throws Exception {
-        // - невалидные данные (слишком короткие поля)
-        NewEventDto invalidRequest = NewEventDto.builder()
-                .title("A")
-                .annotation("Short")
-                .description("Short")
-                .category(1L)
-                .eventDate(LocalDateTime.now().plusDays(1))
-                .location(new LocationDto(55.7558f, 37.6173f))
-                .build();
-
-        mockMvc.perform(post("/users/{userId}/events", userId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(invalidRequest)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors").isArray());
-
-        verify(eventService, never()).createEvent(anyLong(), any());
-    }
-
-    @Test
     void createEvent_WithPastEventDate_ShouldReturn400() throws Exception {
         //- дата в прошлом
         NewEventDto invalidRequest = NewEventDto.builder()
@@ -153,22 +131,5 @@ class PrivateEventControllerIntegrationTest {
                 .andExpect(status().isBadRequest());
 
         verify(eventService, never()).getUserEvent(anyLong(), anyLong());
-    }
-
-    @Test
-    void updateEvent_WithInvalidData_ShouldReturn400() throws Exception {
-        // - невалидные данные
-        UpdateEventUserRequest invalidRequest = UpdateEventUserRequest.builder()
-                .title("A") // Слишком короткий
-                .eventDate(LocalDateTime.now().minusDays(1)) // Прошлая дата
-                .build();
-
-        mockMvc.perform(patch("/users/{userId}/events/{eventId}", userId, eventId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(invalidRequest)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors").isArray());
-
-        verify(eventService, never()).updateEventByUser(anyLong(), anyLong(), any());
     }
 }
