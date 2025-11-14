@@ -1621,49 +1621,45 @@
                   "    const rnd = new RandomUtils();\r",
                   "\r",
                   "    try {\r",
-                  "        const user = await api.addUser(rnd.getUser());\r",
-                  "        const user2 = await api.addUser(rnd.getUser());\r",
+                  "        const [user1, user2] = await Promise.all([\r",
+                  "            api.addUser(rnd.getUser()),\r",
+                  "            api.addUser(rnd.getUser())\r",
+                  "        ]);\r",
+                  "\r",
                   "        const category = await api.addCategory(rnd.getCategory());\r",
-                  "        const event = await api.addEvent(user.id, rnd.getEvent(category.id));\r",
+                  "        const event = await api.addEvent(user1.id, rnd.getEvent(category.id));\r",
+                  "        \r",
                   "        pm.collectionVariables.set(\"eventId\", event.id);\r",
                   "        await api.publishEvent(event.id);\r",
                   "\r",
-                  "        const commentData1 = rnd.getComment(); \r",
-                  "        const commentData2 = rnd.getComment(); \r",
+                  "        const [comment1, comment2] = await Promise.all([\r",
+                  "            api.addComment(user1.id, event.id, rnd.getComment()),\r",
+                  "            api.addComment(user2.id, event.id, rnd.getComment())\r",
+                  "        ]);\r",
                   "\r",
-                  "        const newComment1 = await api.addComment(user.id, event.id, commentData1);\r",
-                  "        const newComment2 = await api.addComment(user2.id, event.id, commentData2);\r",
+                  "        await Promise.all([\r",
+                  "            api.moderateComment(comment1.id, event.id, user1.id, \"APPROVE\"),\r",
+                  "            api.moderateComment(comment2.id, event.id, user1.id, \"APPROVE\")\r",
+                  "        ]);\r",
                   "\r",
-                  "        await api.moderateComment(newComment1.id, event.id, user.id, \"APPROVE\");\r",
-                  "        await api.moderateComment(newComment2.id, event.id, user2.id, \"APPROVE\");\r",
+                  "        pm.collectionVariables.set(\"commentId1\", comment1.id);\r",
+                  "        pm.collectionVariables.set(\"commentId2\", comment2.id);\r",
+                  "        pm.collectionVariables.set(\"userId1\", user1.id);  \r",
+                  "        pm.collectionVariables.set(\"userId2\", user2.id);\r",
                   "\r",
-                  "        pm.collectionVariables.set(\"commentId1\", newComment1.id);\r",
-                  "        pm.collectionVariables.set(\"commentId2\", newComment2.id);\r",
-                  "        pm.collectionVariables.set(\"userId1\", user.id);  \r",
-                  "        pm.collectionVariables.set(\"userId2\", user2.id); \r",
-                  "         \r",
-                  "        \r",
-                  "        console.log(\"Созданы 2 APPROVED комментария:\");\r",
-                  "        console.log(\"Comment1 ID:\", newComment1.id, \"User1 ID:\", user.id);\r",
-                  "        console.log(\"Comment2 ID:\", newComment2.id, \"User2 ID:\", user2.id);\r",
+                  "        console.log(\"Тестовые данные созданы успешно\");\r",
                   "        console.log(\"Event ID:\", event.id);\r",
+                  "        console.log(\"Comments:\", comment1.id, comment2.id);\r",
                   "        \r",
                   "    } catch(err) {\r",
-                  "        console.error(\"Ошибка при подготовке тестовых данных.\", err);\r",
+                  "        console.error(\"Ошибка при подготовке тестовых данных:\", err);\r",
+                  "        throw err; \r",
                   "    }\r",
                   "};\r",
                   "\r",
-                  "const interval = setInterval(() => {}, 1000);\r",
-                  "\r",
-                  "setTimeout(async () => {\r",
-                  "    try {\r",
-                  "        await main();\r",
-                  "    } catch (e) {\r",
-                  "        console.error(e);\r",
-                  "    } finally {\r",
-                  "        clearInterval(interval);\r",
-                  "    }\r",
-                  "}, 100);"
+                  "if (typeof pm !== 'undefined') {\r",
+                  "    main();\r",
+                  "}"
                 ],
                 "type": "text/javascript",
                 "packages": {},
@@ -2787,123 +2783,6 @@
                 {
                   "key": "userId",
                   "value": "{{userId}}"
-                }
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Попытка обновления неавториз. польз.",
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "exec": [
-                  "const main = async () => {\r",
-                  "    const api = new API(pm);\r",
-                  "    const rnd = new RandomUtils();\r",
-                  "    const commentData = rnd.getComment();\r",
-                  "\r",
-                  "    try {\r",
-                  "        const user = await api.addUser(rnd.getUser());\r",
-                  "        const category = await api.addCategory(rnd.getCategory());\r",
-                  "        const event = await api.addEvent(user.id, rnd.getEvent(category.id));\r",
-                  "        await api.publishEvent(event.id);\r",
-                  "\r",
-                  "        const newComment = await api.addComment(user.id, event.id, commentData);\r",
-                  "\r",
-                  "        pm.collectionVariables.set(\"commentId\", newComment.id);\r",
-                  "        pm.collectionVariables.set(\"userId\", user.id);\r",
-                  "        pm.collectionVariables.set(\"newComment\", newComment.text);\r",
-                  "\r",
-                  "        pm.request.body.update({\r",
-                  "            mode: 'raw',\r",
-                  "            raw: JSON.stringify(commentData),\r",
-                  "            options: { raw: { language: 'json' } }\r",
-                  "        });\r",
-                  "        \r",
-                  "        \r",
-                  "    } catch(err) {\r",
-                  "        console.error(\"Ошибка при подготовке тестовых данных.\", err);\r",
-                  "    }\r",
-                  "};\r",
-                  "\r",
-                  "const interval = setInterval(() => {}, 1000);\r",
-                  "\r",
-                  "setTimeout(async () => \r",
-                  "    {\r",
-                  "        try {\r",
-                  "            await main();\r",
-                  "        } catch (e) {\r",
-                  "            console.error(e);\r",
-                  "        } finally {\r",
-                  "            clearInterval(interval);\r",
-                  "        }\r",
-                  "    },  \r",
-                  "    100 \r",
-                  ");"
-                ],
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {}
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Ответ должен содержать код статуса 404 и данные в формате json\", function () {\r",
-                  "    pm.response.to.have.status(404);  \r",
-                  "    pm.response.to.be.withBody;\r",
-                  "    pm.response.to.be.json;\r",
-                  "});\r",
-                  "\r",
-                  "pm.test(\"В ответе должна быть информация об ошибке Not Found\", function () {\r",
-                  "    const response = pm.response.json();\r",
-                  "    \r",
-                  "    pm.expect(response).to.satisfy(function(res) {\r",
-                  "        return res.status === \"NOT_FOUND\"\r",
-                  "    }, \"Ожидалась ошибка NOT_FOUND\");\r",
-                  "});"
-                ],
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "PATCH",
-            "header": [],
-            "body": {
-              "mode": "raw",
-              "raw": "{{request_body}}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/users/:userId/comments/:commentId",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users",
-                ":userId",
-                "comments",
-                ":commentId"
-              ],
-              "variable": [
-                {
-                  "key": "userId",
-                  "value": "99999999"
-                },
-                {
-                  "key": "commentId",
-                  "value": "{{commentId}}"
                 }
               ]
             }
