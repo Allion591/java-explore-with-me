@@ -1,10 +1,10 @@
 {
   "info": {
-    "_postman_id": "ac329421-10a2-4d4d-b179-4dfd89502c68",
+    "_postman_id": "dda4d58f-44bf-4b44-ab6d-2da11fe2f16e",
     "name": "feature",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "46093831",
-    "_collection_link": "https://rusty-3068767.postman.co/workspace/Rusty's-Workspace~9ea60428-80df-47ca-84a3-63af8e7ef7fc/collection/46093831-ac329421-10a2-4d4d-b179-4dfd89502c68?action=share&source=collection_link&creator=46093831"
+    "_collection_link": "https://rusty-3068767.postman.co/workspace/Rusty's-Workspace~9ea60428-80df-47ca-84a3-63af8e7ef7fc/collection/46093831-dda4d58f-44bf-4b44-ab6d-2da11fe2f16e?action=share&source=collection_link&creator=46093831"
   },
   "item": [
     {
@@ -479,7 +479,7 @@
                 "header": [],
                 "body": {
                   "mode": "raw",
-                  "raw": "{{request_body}}",
+                  "raw": "{\r\n    \"text\": \"Обновленный комментарий\"\r\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -725,7 +725,7 @@
                 "header": [],
                 "body": {
                   "mode": "raw",
-                  "raw": " {\r\n    \"stateAction\": \"{{stateActionApprove}}\"\r\n }",
+                  "raw": " {\r\n    \"stateAction\": \"APPROVE\"\r\n }",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -839,7 +839,7 @@
                 "header": [],
                 "body": {
                   "mode": "raw",
-                  "raw": " {\r\n    \"stateAction\": \"{{stateActionReject}}\"\r\n }",
+                  "raw": " {\r\n    \"stateAction\": \"REJECT\"\r\n }",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -3415,7 +3415,7 @@
     },
     {
       "key": "request_body",
-      "value": ""
+      "value": "Обновленный комментарий"
     },
     {
       "key": "mail",
