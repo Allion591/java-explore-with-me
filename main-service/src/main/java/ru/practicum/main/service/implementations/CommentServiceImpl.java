@@ -62,6 +62,7 @@ public class CommentServiceImpl implements CommentService {
 
         // Сохраняем только при изменении
         if (oldState != comment.getState()) {
+            comment.setUpdated(LocalDateTime.now());
             Comment updatedComment = repository.save(comment);
             log.info("Статус комментария {} изменен: {} -> {}",
                     commentId, oldState, updatedComment.getState());
