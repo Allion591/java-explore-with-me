@@ -37,7 +37,7 @@ class AdminCommentControllerTest {
     @Test
     void updateStatusComment_ShouldReturnOk() throws Exception {
         Long commentId = 1L;
-        UpdateCommentAdminRequest request = new UpdateCommentAdminRequest("PUBLISHED");
+        UpdateCommentAdminRequest request = new UpdateCommentAdminRequest("APPROVE");
 
         CommentResponseDto response = CommentResponseDto.builder()
                 .id(commentId)
@@ -46,7 +46,7 @@ class AdminCommentControllerTest {
                 .authorId(5L)
                 .created(LocalDateTime.now().minusHours(2))
                 .updated(LocalDateTime.now())
-                .state("PUBLISHED")
+                .state("APPROVED")
                 .build();
 
         when(commentService.updateCommentByAdmin(any(Long.class), any(UpdateCommentAdminRequest.class)))
@@ -60,7 +60,7 @@ class AdminCommentControllerTest {
                 .andExpect(jsonPath("$.text").value("Обновленный комментарий"))
                 .andExpect(jsonPath("$.eventId").value(10L))
                 .andExpect(jsonPath("$.authorId").value(5L))
-                .andExpect(jsonPath("$.state").value("PUBLISHED"));
+                .andExpect(jsonPath("$.state").value("APPROVED"));
     }
 
     @Test
