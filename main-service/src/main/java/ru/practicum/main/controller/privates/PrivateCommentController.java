@@ -25,8 +25,8 @@ public class PrivateCommentController {
     @PostMapping("/events/{eventId}")
     @ResponseStatus(HttpStatus.CREATED)
     public CommentResponseDto saveComment(
-            @PathVariable @Min(1) Long eventId,
             @PathVariable @Min(1) Long userId,
+            @PathVariable @Min(1) Long eventId,
             @RequestBody @Valid CommentDto commentDto) {
         log.info("Private контроллер: Принял запрос на сохранение комментария от пользователя id: {}", userId);
 
