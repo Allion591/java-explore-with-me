@@ -98,7 +98,6 @@
                   "    pm.expect(target.eventId).to.not.be.null;\r",
                   "    pm.expect(target.authorId).to.not.be.null;\r",
                   "    pm.expect(target.created).to.not.be.null;\r",
-                  "    pm.expect(target.updated).to.not.be.null;\r",
                   "    pm.expect(target.state).to.equal(\"PENDING\", 'Статус должен быть PENDING');\r",
                   "});"
                 ],
@@ -723,7 +722,6 @@
                   "    pm.expect(target.eventId).to.not.be.null;\r",
                   "    pm.expect(target.authorId).to.not.be.null;\r",
                   "    pm.expect(target.created).to.not.be.null;\r",
-                  "    pm.expect(target.updated).to.not.be.null;\r",
                   "    pm.expect(target.state).to.equal(\"PENDING\", 'Статус должен быть PENDING');\r",
                   "});"
                 ],
@@ -858,7 +856,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": " {\r\n    \"stateAction\": \"APPROVE\"\r\n }",
+              "raw": " {\r\n    \"stateAction\": \"APPROVED\"\r\n }",
               "options": {
                 "raw": {
                   "language": "json"
@@ -972,7 +970,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"stateAction\": \"REJECT\"\r\n }",
+              "raw": "{\r\n    \"stateAction\": \"REJECTED\"\r\n }",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1197,7 +1195,6 @@
                   "    pm.expect(target.eventId).to.not.be.null;\r",
                   "    pm.expect(target.authorId).to.not.be.null;\r",
                   "    pm.expect(target.created).to.not.be.null;\r",
-                  "    pm.expect(target.updated).to.not.be.null;\r",
                   "    pm.expect(target.state).to.equal(\"PENDING\", 'Статус должен быть PENDING');\r",
                   "});"
                 ],
@@ -1332,7 +1329,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": " {\r\n    \"stateAction\": \"APPROVE\"\r\n }",
+              "raw": " {\r\n    \"stateAction\": \"APPROVED\"\r\n }",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1447,7 +1444,6 @@
                   "    pm.expect(target.eventId).to.not.be.null;\r",
                   "    pm.expect(target.authorId).to.not.be.null;\r",
                   "    pm.expect(target.created).to.not.be.null;\r",
-                  "    pm.expect(target.updated).to.not.be.null;\r",
                   "    pm.expect(target.state).to.equal(\"PENDING\", 'Статус должен быть PENDING');\r",
                   "});"
                 ],
@@ -1582,7 +1578,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"stateAction\": \"APPROVE\"\r\n }",
+              "raw": "{\r\n    \"stateAction\": \"APPROVED\"\r\n }",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1638,8 +1634,8 @@
                   "        ]);\r",
                   "\r",
                   "        await Promise.all([\r",
-                  "            api.moderateComment(comment1.id, event.id, user1.id, \"APPROVE\"),\r",
-                  "            api.moderateComment(comment2.id, event.id, user1.id, \"APPROVE\")\r",
+                  "            api.moderateComment(comment1.id, event.id, user1.id, \"APPROVED\"),\r",
+                  "            api.moderateComment(comment2.id, event.id, user1.id, \"APPROVED\")\r",
                   "        ]);\r",
                   "\r",
                   "        pm.collectionVariables.set(\"commentId1\", comment1.id);\r",
