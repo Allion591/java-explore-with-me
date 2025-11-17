@@ -55,8 +55,8 @@ public class CommentServiceImpl implements CommentService {
 
         // Обновляем статус в зависимости какой передан
         switch (request.getStateAction()) {
-            case "APPROVE" -> comment.setState(CommentStatus.APPROVED);
-            case "REJECT" -> comment.setState(CommentStatus.REJECTED);
+            case CommentStatus.APPROVED -> comment.setState(CommentStatus.APPROVED);
+            case CommentStatus.REJECTED -> comment.setState(CommentStatus.REJECTED);
             default -> throw new IllegalArgumentException("Неизвестный статус: " + request.getStateAction());
         }
 
@@ -144,7 +144,7 @@ public class CommentServiceImpl implements CommentService {
         log.info("Private сервис: Принял запрос на вывод всех комментариев пользователя с id: {}", userId);
         userService.checkUserExists(userId);
 
-        Pageable pageable = PageRequest.of(from, size, Sort.by("created").descending());
+        Pageable pageable = PageRequest.of(from / size, size, Sort.by("created").descending());
 
         List<Comment> userComments = repository.findByAuthorId(userId, pageable).getContent();
 
@@ -222,7 +222,7 @@ public class CommentServiceImpl implements CommentService {
 
         eventService.existsById(eventId);
 
-        Pageable pageable = PageRequest.of(from, size, Sort.by("created").descending());
+        Pageable pageable = PageRequest.of(from / size, size, Sort.by("created").descending());
 
         List<Comment> eventComments = repository.findByEventIdAndState(eventId,
                 CommentStatus.APPROVED, pageable).getContent();
