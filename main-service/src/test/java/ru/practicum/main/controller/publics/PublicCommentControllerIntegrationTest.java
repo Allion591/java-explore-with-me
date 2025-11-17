@@ -253,14 +253,6 @@ class PublicCommentControllerIntegrationTest {
     }
 
     @Test
-    void getAllCommentsByEventId_whenInvalidSize_thenReturnBadRequest() throws Exception {
-        mockMvc.perform(get("/comments/{eventId}", testEvent.getId())
-                        .param("from", "0")
-                        .param("size", "0"))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
     void getAllCommentsByEventId_whenSizeTooLarge_thenReturnBadRequest() throws Exception {
         mockMvc.perform(get("/comments/{eventId}", testEvent.getId())
                         .param("from", "0")

@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import ru.practicum.main.enums.CommentStatus;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -21,7 +22,7 @@ class UpdateCommentAdminRequestSerializationTest {
     @BeforeEach
     void setUp() {
         updateRequest = UpdateCommentAdminRequest.builder()
-                .stateAction("APPROVE")
+                .stateAction(CommentStatus.APPROVED)
                 .build();
     }
 
@@ -29,7 +30,7 @@ class UpdateCommentAdminRequestSerializationTest {
     @Test
     void whenSerialize_thenCorrectJson() throws JsonProcessingException {
         // Given
-        String expectedJson = "{\"stateAction\":\"APPROVE\"}";
+        String expectedJson = "{\"stateAction\":\"APPROVED\"}";
 
         // When
         String actualJson = objectMapper.writeValueAsString(updateRequest);
@@ -42,127 +43,36 @@ class UpdateCommentAdminRequestSerializationTest {
     void whenSerializeWithDifferentStateActions_thenCorrectJson() throws JsonProcessingException {
         // Given
         UpdateCommentAdminRequest rejectRequest = UpdateCommentAdminRequest.builder()
-                .stateAction("REJECT")
+                .stateAction(CommentStatus.REJECTED)
                 .build();
 
         UpdateCommentAdminRequest publishRequest = UpdateCommentAdminRequest.builder()
-                .stateAction("PUBLISH")
+                .stateAction(CommentStatus.APPROVED)
                 .build();
 
         // When & Then
-        assertEquals("{\"stateAction\":\"REJECT\"}",
+        assertEquals("{\"stateAction\":\"REJECTED\"}",
                 objectMapper.writeValueAsString(rejectRequest),
                 "Сериализация для REJECT должна создавать корректный JSON");
 
-        assertEquals("{\"stateAction\":\"PUBLISH\"}",
+        assertEquals("{\"stateAction\":\"APPROVED\"}",
                 objectMapper.writeValueAsString(publishRequest),
                 "Сериализация для PUBLISH должна создавать корректный JSON");
-    }
-
-    @Test
-    void whenSerializeWithMaxLengthStateAction_thenCorrectJson() throws JsonProcessingException {
-        // Given
-        String maxLengthAction = "A".repeat(20);
-        UpdateCommentAdminRequest maxLengthRequest = UpdateCommentAdminRequest.builder()
-                .stateAction(maxLengthAction)
-                .build();
-
-        String expectedJson = "{\"stateAction\":\"" + maxLengthAction + "\"}";
-
-        // When
-        String actualJson = objectMapper.writeValueAsString(maxLengthRequest);
-
-        // Then
-        assertEquals(expectedJson, actualJson,
-                "Сериализация с stateAction максимальной длины должна создавать корректный JSON");
-    }
-
-    @Test
-    void whenSerializeWithSpecialCharacters_thenCorrectJson() throws JsonProcessingException {
-        // Given
-        String specialStateAction = "STATE_ACTION-123";
-        UpdateCommentAdminRequest specialRequest = UpdateCommentAdminRequest.builder()
-                .stateAction(specialStateAction)
-                .build();
-
-        // When
-        String json = objectMapper.writeValueAsString(specialRequest);
-        UpdateCommentAdminRequest deserialized = objectMapper.readValue(json, UpdateCommentAdminRequest.class);
-
-        // Then
-        assertEquals(specialStateAction, deserialized.getStateAction(),
-                "Сериализация и десериализация должны корректно обрабатывать специальные символы в stateAction");
     }
 
     // Тесты десериализации (JSON -> объект)
     @Test
     void whenDeserializeValidJson_thenCorrectObject() throws JsonProcessingException {
         // Given
-        String json = "{\"stateAction\":\"APPROVE\"}";
+        String json = "{\"stateAction\":\"APPROVED\"}";
 
         // When
         UpdateCommentAdminRequest result = objectMapper.readValue(json, UpdateCommentAdminRequest.class);
 
         // Then
         assertNotNull(result, "Десериализованный объект не должен быть null");
-        assertEquals("APPROVE", result.getStateAction(),
+        assertEquals(CommentStatus.APPROVED, result.getStateAction(),
                 "stateAction должен корректно десериализоваться");
-    }
-
-    @Test
-    void whenDeserializeWithLowerCase_thenCorrectObject() throws JsonProcessingException {
-        // Given
-        String json = "{\"stateAction\":\"approve\"}";
-
-        // When
-        UpdateCommentAdminRequest result = objectMapper.readValue(json, UpdateCommentAdminRequest.class);
-
-        // Then
-        assertNotNull(result, "Десериализованный объект не должен быть null");
-        assertEquals("approve", result.getStateAction(),
-                "stateAction в нижнем регистре должен корректно десериализоваться");
-    }
-
-    @Test
-    void whenDeserializeWithMixedCase_thenCorrectObject() throws JsonProcessingException {
-        // Given
-        String json = "{\"stateAction\":\"ApPrOvE\"}";
-
-        // When
-        UpdateCommentAdminRequest result = objectMapper.readValue(json, UpdateCommentAdminRequest.class);
-
-        // Then
-        assertNotNull(result, "Десериализованный объект не должен быть null");
-        assertEquals("ApPrOvE", result.getStateAction(),
-                "stateAction в смешанном регистре должен корректно десериализоваться");
-    }
-
-    @Test
-    void whenDeserializeWithSpaces_thenCorrectObject() throws JsonProcessingException {
-        // Given
-        String json = "{\"stateAction\":\"APPROVE COMMENT\"}";
-
-        // When
-        UpdateCommentAdminRequest result = objectMapper.readValue(json, UpdateCommentAdminRequest.class);
-
-        // Then
-        assertNotNull(result, "Десериализованный объект не должен быть null");
-        assertEquals("APPROVE COMMENT", result.getStateAction(),
-                "stateAction с пробелами должен корректно десериализоваться");
-    }
-
-    @Test
-    void whenDeserializeWithEmptyString_thenCorrectObject() throws JsonProcessingException {
-        // Given
-        String json = "{\"stateAction\":\"\"}";
-
-        // When
-        UpdateCommentAdminRequest result = objectMapper.readValue(json, UpdateCommentAdminRequest.class);
-
-        // Then
-        assertNotNull(result, "Десериализованный объект не должен быть null");
-        assertEquals("", result.getStateAction(),
-                "Пустой stateAction должен корректно десериализоваться");
     }
 
     @Test
@@ -195,14 +105,14 @@ class UpdateCommentAdminRequestSerializationTest {
     @Test
     void whenDeserializeWithExtraFields_thenIgnoreExtraFields() throws JsonProcessingException {
         // Given
-        String json = "{\"stateAction\":\"REJECT\",\"commentId\":123,\"adminId\":456,\"reason\":\"Spam\"}";
+        String json = "{\"stateAction\":\"REJECTED\",\"commentId\":123,\"adminId\":456,\"reason\":\"Spam\"}";
 
         // When
         UpdateCommentAdminRequest result = objectMapper.readValue(json, UpdateCommentAdminRequest.class);
 
         // Then
         assertNotNull(result, "Десериализованный объект не должен быть null");
-        assertEquals("REJECT", result.getStateAction(),
+        assertEquals(CommentStatus.REJECTED, result.getStateAction(),
                 "stateAction должен корректно десериализоваться, лишние поля должны игнорироваться");
     }
 
@@ -233,7 +143,7 @@ class UpdateCommentAdminRequestSerializationTest {
     void whenSerializeThenDeserialize_thenSameObject() throws JsonProcessingException {
         // Given
         UpdateCommentAdminRequest original = UpdateCommentAdminRequest.builder()
-                .stateAction("REJECT")
+                .stateAction(CommentStatus.REJECTED)
                 .build();
 
         // When
@@ -248,7 +158,7 @@ class UpdateCommentAdminRequestSerializationTest {
     @Test
     void whenDeserializeThenSerialize_thenSameJson() throws JsonProcessingException {
         // Given
-        String originalJson = "{\"stateAction\":\"PUBLISH_COMMENT\"}";
+        String originalJson = "{\"stateAction\":\"APPROVED\"}";
 
         // When
         UpdateCommentAdminRequest dto = objectMapper.readValue(originalJson, UpdateCommentAdminRequest.class);
@@ -264,7 +174,7 @@ class UpdateCommentAdminRequestSerializationTest {
     void whenMultipleSerializations_thenConsistentResults() throws JsonProcessingException {
         // Given
         UpdateCommentAdminRequest dto = UpdateCommentAdminRequest.builder()
-                .stateAction("APPROVE")
+                .stateAction(CommentStatus.APPROVED)
                 .build();
         int iterations = 100;
 
@@ -278,59 +188,6 @@ class UpdateCommentAdminRequestSerializationTest {
         }
     }
 
-    // Тесты граничных случаев для stateAction
-    @Test
-    void whenSerializeUnicodeCharacters_thenCorrectJson() throws JsonProcessingException {
-        // Given
-        String unicodeStateAction = "APPROVE_КОММЕНТАРИЙ";
-        UpdateCommentAdminRequest unicodeDto = UpdateCommentAdminRequest.builder()
-                .stateAction(unicodeStateAction)
-                .build();
-
-        // When
-        String json = objectMapper.writeValueAsString(unicodeDto);
-        UpdateCommentAdminRequest result = objectMapper.readValue(json, UpdateCommentAdminRequest.class);
-
-        // Then
-        assertEquals(unicodeStateAction, result.getStateAction(),
-                "Unicode символы должны корректно сериализоваться и десериализоваться");
-    }
-
-    @Test
-    void whenSerializeWithEscapedCharacters_thenCorrectJson() throws JsonProcessingException {
-        // Given
-        String stateActionWithQuotes = "ACTION_WITH_\"QUOTES\"";
-        UpdateCommentAdminRequest dto = UpdateCommentAdminRequest.builder()
-                .stateAction(stateActionWithQuotes)
-                .build();
-
-        // When
-        String json = objectMapper.writeValueAsString(dto);
-
-        // Then
-        assertTrue(json.contains("\\\""), "JSON должен содержать экранированные кавычки");
-
-        UpdateCommentAdminRequest result = objectMapper.readValue(json, UpdateCommentAdminRequest.class);
-        assertEquals(stateActionWithQuotes, result.getStateAction(),
-                "Экранированные символы должны корректно восстанавливаться");
-    }
-
-    // Тесты для builder и конструкторов
-    @Test
-    void builderShouldCreateObjectWithCorrectValues() {
-        // Given
-        String expectedStateAction = "CUSTOM_ACTION";
-
-        // When
-        UpdateCommentAdminRequest result = UpdateCommentAdminRequest.builder()
-                .stateAction(expectedStateAction)
-                .build();
-
-        // Then
-        assertEquals(expectedStateAction, result.getStateAction(),
-                "Builder должен корректно устанавливать stateAction");
-    }
-
     @Test
     void noArgsConstructorShouldCreateObject() {
         // When
@@ -342,45 +199,18 @@ class UpdateCommentAdminRequestSerializationTest {
                 "stateAction должен быть null после создания через конструктор без аргументов");
     }
 
-    @Test
-    void allArgsConstructorShouldCreateObjectWithCorrectValues() {
-        // Given
-        String expectedStateAction = "ALL_ARGS_ACTION";
-
-        // When
-        UpdateCommentAdminRequest result = new UpdateCommentAdminRequest(expectedStateAction);
-
-        // Then
-        assertEquals(expectedStateAction, result.getStateAction(),
-                "Конструктор со всеми аргументами должен корректно устанавливать stateAction");
-    }
-
-    @Test
-    void settersAndGettersShouldWorkCorrectly() {
-        // Given
-        UpdateCommentAdminRequest dto = new UpdateCommentAdminRequest();
-        String expectedStateAction = "SETTER_TEST";
-
-        // When
-        dto.setStateAction(expectedStateAction);
-
-        // Then
-        assertEquals(expectedStateAction, dto.getStateAction(),
-                "Setter и Getter должны корректно работать для stateAction");
-    }
-
     // Тесты для equals и hashCode (генерируемых Lombok)
     @Test
     void equalsAndHashCodeShouldWorkCorrectly() {
         // Given
         UpdateCommentAdminRequest request1 = UpdateCommentAdminRequest.builder()
-                .stateAction("APPROVE")
+                .stateAction(CommentStatus.APPROVED)
                 .build();
         UpdateCommentAdminRequest request2 = UpdateCommentAdminRequest.builder()
-                .stateAction("APPROVE")
+                .stateAction(CommentStatus.APPROVED)
                 .build();
         UpdateCommentAdminRequest request3 = UpdateCommentAdminRequest.builder()
-                .stateAction("REJECT")
+                .stateAction(CommentStatus.REJECTED)
                 .build();
 
         // Then
@@ -398,7 +228,7 @@ class UpdateCommentAdminRequestSerializationTest {
     void equalsShouldHandleNull() {
         // Given
         UpdateCommentAdminRequest request = UpdateCommentAdminRequest.builder()
-                .stateAction("APPROVE")
+                .stateAction(CommentStatus.APPROVED)
                 .build();
 
         // Then
@@ -409,9 +239,9 @@ class UpdateCommentAdminRequestSerializationTest {
     void equalsShouldHandleDifferentClass() {
         // Given
         UpdateCommentAdminRequest request = UpdateCommentAdminRequest.builder()
-                .stateAction("APPROVE")
+                .stateAction(CommentStatus.APPROVED)
                 .build();
-        Object differentObject = "APPROVE";
+        Object differentObject = "APPROVED";
 
         // Then
         assertNotEquals(request, differentObject,

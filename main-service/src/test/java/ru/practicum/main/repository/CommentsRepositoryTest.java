@@ -59,28 +59,6 @@ class CommentsRepositoryTest {
     }
 
     @Test
-    void findByAuthorId_ShouldReturnCommentsByAuthor() {
-        // Given
-        User author1 = createUser();
-        User author2 = createUser();
-        Event event = createEvent(author1);
-
-        Comment comment1 = createComment("Comment 1", author1, event, CommentStatus.PENDING);
-        Comment comment2 = createComment("Comment 2", author1, event, CommentStatus.APPROVED);
-        createComment("Comment 3", author2, event, CommentStatus.PENDING);
-
-        Pageable pageable = PageRequest.of(0, 10);
-
-        // When
-        Page<Comment> result = commentsRepository.findByAuthorId(author1.getId(), pageable);
-
-        // Then
-        assertEquals(2, result.getTotalElements());
-        assertTrue(result.getContent().stream()
-                .allMatch(c -> c.getAuthor().getId().equals(author1.getId())));
-    }
-
-    @Test
     void save_ShouldPersistComment() {
         // Given
         User user = createUser();

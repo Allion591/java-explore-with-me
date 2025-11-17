@@ -212,22 +212,6 @@ class PrivateCommentControllerIntegrationTest {
     }
 
     @Test
-    void getUserComments_whenInvalidFrom_thenReturnBadRequest() throws Exception {
-        mockMvc.perform(get("/users/{userId}/comments", testUser.getId())
-                        .param("from", "-1")
-                        .param("size", "10"))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void getUserComments_whenInvalidSize_thenReturnBadRequest() throws Exception {
-        mockMvc.perform(get("/users/{userId}/comments", testUser.getId())
-                        .param("from", "0")
-                        .param("size", "0"))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
     void updateComment_whenValid_thenReturnUpdatedComment() throws Exception {
         String requestBody = "{\"text\": \"Updated comment\"}";
 

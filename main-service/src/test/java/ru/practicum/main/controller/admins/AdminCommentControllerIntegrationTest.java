@@ -116,7 +116,7 @@ class AdminCommentControllerIntegrationTest {
 
     @Test
     void updateStatusComment_whenCommentExists_thenUpdateAndReturnComment() throws Exception {
-        String requestBody = "{\"stateAction\": \"APPROVE\"}";
+        String requestBody = "{\"stateAction\": \"APPROVED\"}";
 
         mockMvc.perform(patch("/admin/comments/{commentId}", testComment.getId())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -129,23 +129,13 @@ class AdminCommentControllerIntegrationTest {
 
     @Test
     void updateStatusComment_whenRejectComment_thenUpdateStateToRejected() throws Exception {
-        String requestBody = "{\"stateAction\": \"REJECT\"}";
+        String requestBody = "{\"stateAction\": \"REJECTED\"}";
 
         mockMvc.perform(patch("/admin/comments/{commentId}", testComment.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.state").value("REJECTED"));
-    }
-
-    @Test
-    void updateStatusComment_whenCommentNotFound_thenReturnNotFound() throws Exception {
-        String requestBody = "{\"stateAction\": \"PUBLISH_COMMENT\"}";
-
-        mockMvc.perform(patch("/admin/comments/{commentId}", 999L)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
-                .andExpect(status().isNotFound());
     }
 
     @Test

@@ -53,7 +53,7 @@ class CommentServiceImplTest {
     void updateCommentByAdmin_WhenApprove_ShouldUpdateState() {
         // Given
         Long commentId = 1L;
-        UpdateCommentAdminRequest request = new UpdateCommentAdminRequest("APPROVE");
+        UpdateCommentAdminRequest request = new UpdateCommentAdminRequest(CommentStatus.APPROVED);
         Comment comment = createComment(commentId, CommentStatus.PENDING);
         CommentResponseDto responseDto = createCommentResponseDto(commentId, "APPROVED");
 
@@ -284,7 +284,7 @@ class CommentServiceImplTest {
     void updateCommentByAdmin_WhenCommentNotFound_ShouldThrowException() {
         // Given
         Long commentId = 1L;
-        UpdateCommentAdminRequest request = new UpdateCommentAdminRequest("APPROVE");
+        UpdateCommentAdminRequest request = new UpdateCommentAdminRequest(CommentStatus.APPROVED);
 
         when(repository.findById(commentId)).thenReturn(Optional.empty());
 

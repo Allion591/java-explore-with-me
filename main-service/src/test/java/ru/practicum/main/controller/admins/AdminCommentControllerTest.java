@@ -10,6 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.practicum.main.dto.comment.CommentResponseDto;
 import ru.practicum.main.dto.comment.UpdateCommentAdminRequest;
+import ru.practicum.main.enums.CommentStatus;
 import ru.practicum.main.service.interfaces.CommentService;
 
 import java.time.LocalDateTime;
@@ -37,7 +38,7 @@ class AdminCommentControllerTest {
     @Test
     void updateStatusComment_ShouldReturnOk() throws Exception {
         Long commentId = 1L;
-        UpdateCommentAdminRequest request = new UpdateCommentAdminRequest("APPROVE");
+        UpdateCommentAdminRequest request = new UpdateCommentAdminRequest(CommentStatus.APPROVED);
 
         CommentResponseDto response = CommentResponseDto.builder()
                 .id(commentId)

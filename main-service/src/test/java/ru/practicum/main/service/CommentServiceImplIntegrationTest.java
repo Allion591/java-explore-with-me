@@ -47,7 +47,7 @@ class CommentServiceImplIntegrationTest {
     void updateCommentByAdmin_WhenValidRequest_ShouldUpdateComment() {
         // Given
         Long commentId = 1L;
-        UpdateCommentAdminRequest request = new UpdateCommentAdminRequest("APPROVE");
+        UpdateCommentAdminRequest request = new UpdateCommentAdminRequest(CommentStatus.APPROVED);
 
         Comment comment = Comment.builder()
                 .id(commentId)
@@ -182,6 +182,6 @@ class CommentServiceImplIntegrationTest {
 
         // When & Then
         assertThrows(NotFoundException.class, () ->
-                commentService.updateCommentByAdmin(commentId, new UpdateCommentAdminRequest("APPROVE")));
+                commentService.updateCommentByAdmin(commentId, new UpdateCommentAdminRequest(CommentStatus.APPROVED)));
     }
 }
