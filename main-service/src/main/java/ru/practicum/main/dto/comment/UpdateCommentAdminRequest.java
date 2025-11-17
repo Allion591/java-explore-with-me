@@ -1,11 +1,11 @@
 package ru.practicum.main.dto.comment;
 
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import ru.practicum.main.enums.CommentStatus;
 
 @Data
 @NoArgsConstructor
@@ -13,6 +13,5 @@ import lombok.NoArgsConstructor;
 @Builder
 public class UpdateCommentAdminRequest {
     @NotNull
-    @Size(max = 20, message = "Статус не может быть длиннее 20ти символов")
-    private String stateAction;
+    private CommentStatus stateAction;
 }
