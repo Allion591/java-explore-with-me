@@ -44,6 +44,5 @@ public class Comment {
     private LocalDateTime created;
 
     @Column(name = "updated_date")
-    @Builder.Default
-    private LocalDateTime updated = LocalDateTime.now();
+    private LocalDateTime updated;
 }
