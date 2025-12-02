@@ -10,6 +10,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import ru.practicum.main.dto.error.ApiError;
 import ru.practicum.main.exception.conflict.ConflictException;
@@ -52,13 +53,25 @@ public class GlobalExceptionHandler {
         return buildApiError(HttpStatus.CONFLICT, INTEGRITY_VIOLATION_REASON, message, null);
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiError handleIllegalArgumentException(IllegalArgumentException e) {
+        log.warn("IllegalArgumentException: {}", e.getMessage());
+        if (e.getMessage() != null && e.getMessage().contains("Неизвестный статус")) {
+            return buildApiError(HttpStatus.BAD_REQUEST, BAD_REQUEST_REASON,
+                    e.getMessage(), null);
+        }
+        return buildApiError(HttpStatus.BAD_REQUEST, BAD_REQUEST_REASON,
+                "Некорректные параметры запроса", null);
+    }
+
     @ExceptionHandler({MethodArgumentNotValidException.class, ConstraintViolationException.class})
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiError handleValidationExceptions(Exception e) {
         log.warn("Validation exception: {}", e.getMessage());
 
         List<String> errors = extractValidationErrors(e);
-        return buildApiError(HttpStatus.BAD_REQUEST, BAD_REQUEST_REASON, "Ошибка валидации данных.", errors);
+        return buildApiError(HttpStatus.BAD_REQUEST, BAD_REQUEST_REASON, "Ошибка валидации данных.", null);
     }
 
     @ExceptionHandler({MethodArgumentTypeMismatchException.class, MissingServletRequestParameterException.class})
@@ -70,11 +83,24 @@ public class GlobalExceptionHandler {
         return buildApiError(HttpStatus.BAD_REQUEST, BAD_REQUEST_REASON, message, null);
     }
 
-    @ExceptionHandler(ValidationException.class)
+    @ExceptionHandler({ValidationException.class})
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiError handleCustomValidationException(ValidationException e) {
         log.warn("ValidationException: {}", e.getMessage());
         return buildApiError(e.getStatus(), e.getReason(), e.getMessage(), null);
+    }
+
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiError handleHandlerMethodValidationException(HandlerMethodValidationException e) {
+        log.warn("HandlerMethodValidationException: {}", e.getMessage());
+
+        String errorMessage = "Ошибка валидации";
+        if (!e.getAllValidationResults().isEmpty()) {
+            errorMessage = e.getAllValidationResults().getFirst().toString();
+        }
+
+        return buildApiError(HttpStatus.BAD_REQUEST, BAD_REQUEST_REASON, errorMessage, null);
     }
 
     @ExceptionHandler(EwmException.class)

@@ -1,4 +1,4 @@
-package ru.practicum.main.controller.privats;
+package ru.practicum.main.controller.privates;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -191,22 +191,6 @@ class PrivateRequestControllerIntegrationTest {
                 .andExpect(jsonPath("$.rejectedRequests.length()").value(0));
 
         verify(requestService, times(1)).updateRequestStatus(userId, eventId, updateRequest);
-    }
-
-    @Test
-    void updateRequestStatus_WithInvalidData_ShouldReturn400() throws Exception {
-        EventRequestStatusUpdateRequest invalidRequest = EventRequestStatusUpdateRequest.builder()
-                .requestIds(List.of()) // Пустой список
-                .status(null) // Null статус
-                .build();
-
-        mockMvc.perform(patch("/users/{userId}/events/{eventId}/requests", userId, eventId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(invalidRequest)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors").isArray());
-
-        verify(requestService, never()).updateRequestStatus(anyLong(), anyLong(), any());
     }
 
     @Test

@@ -1,4 +1,4 @@
-package ru.practicum.main.controller.privats;
+package ru.practicum.main.controller.privates;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
